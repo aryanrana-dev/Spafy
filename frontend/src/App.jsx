@@ -1,12 +1,17 @@
-import React from 'react'
+import './App.css'
+import ServicesLayout from './services-page/services-layout'
+import { Routes, Route } from 'react-router-dom'
 import Razorpay from './pages/Razorpay'
 
-const App = () => {
+function App() {
+
   return (
-    <div>
-      <Razorpay/>
-      
-    </div>
+    <>
+      <Routes>
+        <Route path='/' element={<Razorpay />} />
+        <Route path='/saloon' element={<ServicesLayout />} />
+      </Routes>
+    </>
   )
 }
 
