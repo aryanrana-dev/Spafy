@@ -7,7 +7,7 @@ export default function Hero() {
             ></div>
             <div className="absolute inset-0 bg-gradient-to-t from-[#fbf9f4] to-transparent/20"></div>
             <div className="absolute inset-0 flex items-end pb-12 px-6 md:px-16 container mx-auto max-w-[1200px]">
-                <h2 className="font-headline-display text-[#33251d]">Curated Services</h2>
+                <h2 className="font-headline-display text-[#33251d]">Hair Masters</h2>
             </div>
         </section>
     )
