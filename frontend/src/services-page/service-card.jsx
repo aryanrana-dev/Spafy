@@ -1,3 +1,6 @@
+
+import { IoAddSharp } from "react-icons/io5";
+
 export default function ServiceCard({ image, title, category, description }) {
     return (
         <div className="flex items-center gap-6 p-4 rounded-lg bg-[#f5f3ee] hairline-border transition-colors hover:bg-[#e4e2dd]">
@@ -10,7 +13,7 @@ export default function ServiceCard({ image, title, category, description }) {
                 <p className="font-body-md text-[#4e4540]">{description}</p>
             </div>
             <button className="w-12 h-12 flex items-center justify-center rounded-full bg-[#4a3b32] text-white hover:opacity-90 transition-opacity flex-shrink-0">
-                <span className="material-symbols-outlined">add</span>
+                <span className="material-symbols-outlined">{<IoAddSharp size={25} />}</span>
             </button>
         </div>
     )

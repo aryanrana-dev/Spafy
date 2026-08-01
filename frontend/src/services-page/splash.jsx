@@ -1,5 +1,7 @@
 import { useEffect } from "react";
 import "./splash.css";
+import comb from "../assets/comb.png"
+import scissors from "../assets/scissors.png"
 
 const SplashScreen = () => {
     useEffect(() => {
@@ -23,23 +25,23 @@ const SplashScreen = () => {
         <>
             <main className="relative h-screen w-full flex flex-col items-center justify-center bg-[#F7F5F0] overflow-hidden">
                 {/* Top-Right Decorative Corner Art (Scissors) */}
-                <div className="absolute top-0 right-0 w-64 h-64 md:w-96 md:h-96 opacity-10 pointer-events-none watermark-float translate-x-12 -translate-y-12">
+                <div className="absolute top-10 right-10 w-64 h-64 md:w-96 md:h-96 opacity-10 pointer-events-none watermark-float translate-x-12 -translate-y-12">
                     <img
                         alt=""
                         className="w-full h-full object-contain filter grayscale brightness-50"
-                        src="https://lh3.googleusercontent.com/aida/AP1WRLsbXAqytfSYdaA81xEjgvOd7vmw24aYUXiogvddfpMGGH5hKOL-o_d_spqddPF_OPgd8fQ4vhH6rFRo8LSJzks3lqOzSv1ISd_jcMyBNZL269POBNpThPlE-nJdjKmgtBahfIuuefIOkGzteFrDVI04zuOIhcRAc7xQwAF5_5XTL-Fnv48cGz4YqHoFRsxW_6BKh_gSV_XDJUUqt4fkqgx-htiDklLsoqFXQGB2NfVA-sQHSOxlLb1zIbx2"
+                        src={comb}
                     />
                 </div>
 
                 {/* Bottom-Left Decorative Corner Art (Comb) */}
                 <div
-                    className="absolute bottom-0 left-0 w-64 h-64 md:w-80 md:h-80 opacity-10 pointer-events-none watermark-float -translate-x-12 translate-y-12"
+                    className="absolute bottom-10 left-10 w-64 h-64 md:w-80 md:h-80 opacity-10 pointer-events-none watermark-float -translate-x-12 translate-y-12"
                     style={{ animationDelay: '-4s' }}
                 >
                     <img
                         alt=""
                         className="w-full h-full object-contain filter grayscale sepia brightness-50"
-                        src="https://lh3.googleusercontent.com/aida/AP1WRLveQ_GSeQPfVAncMG25Se3Yq6w_M1owgSg2erMKqD3GkMmHEthyxOhYkxOHk9dUtQ0wGn6IMfJ8Q5xi_ywRHffTSPkHWwQQDl-ORsemu1O0ITJGkv5lax9P5tiP-0OXE4jnNLnxoTsZn9UC6oMvxaUSz06UWv36EuaFtk2--1LOvGDck6daDPUkhKnG6AgH8Yls2dZ3v3T0lhD1_ZIeeYfqZ1LVSuJSJ-kp1PkmlxVyHZklnrqPQjMh8AzC"
+                        src={scissors}
                     />
                 </div>
 

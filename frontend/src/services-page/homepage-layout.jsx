@@ -3,6 +3,7 @@ import Hero from './hero';
 import BottomNav from './bottom-nav';
 import Header from './header';
 import ServiceCard from './service-card';
+import FloatBtn from './float-btn';
 import "./homepage-layout.css";
 
 export default function HomepageLayout() {
@@ -44,14 +45,7 @@ export default function HomepageLayout() {
             </main>
 
             <BottomNav />
-
-            {/* Floating Action Button (Desktop Only) */}
-            <div className="fixed bottom-8 right-8 z-50 hidden md:block">
-                <button className="bg-[#4a3b32] text-white font-label-md uppercase tracking-widest px-6 py-4 rounded-full shadow-lg hover:opacity-90 transition-opacity flex items-center gap-2">
-                    <span className="material-symbols-outlined">spa</span>
-                    View Services
-                </button>
-            </div>
+            <FloatBtn />
         </div>
     </>)
 }
