@@ -5,6 +5,7 @@ import cors from "cors"
 import authRoutes from "./src/routes/auth.route.js"
 import { connectDB } from "./src/lib/db.js"
 import bookingRoutes from "./src/routes/bookingRoutes.js"
+import {ownerRoutes} from "./src/routes/ownerRoute.js"
 
 
 app.use(cors({origin:"http://localhost:5173",credentials:true
@@ -12,6 +13,7 @@ app.use(cors({origin:"http://localhost:5173",credentials:true
 }))
 app.use("/api/bookings",bookingRoutes);
 app.use("/api/auth",authRoutes);
+app.use("api/service",ownerRoutes)
 
 app.use(express.json())//req.body
 
