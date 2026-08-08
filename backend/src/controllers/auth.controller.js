@@ -120,3 +120,20 @@ export const updateProfile = async(req,res)=>{
         
     }
 }
+export const googleCallback = async (req, res) => {
+  try {
+    const token = generateToken(req.user._id);
+
+    res.json({
+      message: "Google login successful",
+      token,
+      user: req.user
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      message: "Google login failed",
+      error: error.message
+    });
+  }
+};

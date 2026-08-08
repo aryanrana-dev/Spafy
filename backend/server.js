@@ -6,14 +6,20 @@ import authRoutes from "./src/routes/auth.route.js"
 import { connectDB } from "./src/lib/db.js"
 import bookingRoutes from "./src/routes/bookingRoutes.js"
 import {ownerRoutes} from "./src/routes/ownerRoute.js"
+import passport from "./src/config/passport.js"
+import googleRoutes from "./routes/googleRoutes.js";
 
 
 app.use(cors({origin:"http://localhost:5173",credentials:true
 
 }))
+
+app.use("/api/auth", googleRoutes);
+app.use(passport.initialize());
 app.use("/api/bookings",bookingRoutes);
 app.use("/api/auth",authRoutes);
 app.use("api/service",ownerRoutes)
+
 
 app.use(express.json())//req.body
 
