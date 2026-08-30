@@ -4,42 +4,49 @@ import BottomNav from './bottom-nav';
 import Header from './header';
 import ServiceCard from './service-card';
 import FloatBtn from './float-btn';
+import CartDrawer from './services-cart';
 import "./homepage-layout.css";
+import { useServicesStore } from '../stores/services-store';
+import { useServices } from '../queries/services-queries';
 
 export default function HomepageLayout() {
+
+    const { data, isLoading, isError, error } = useServices();
+    console.log(data);
+
+    const services = useServicesStore((state) => state.services);
+    const isOpen = useServicesStore((state) => state.isOpen);
+    const addService = useServicesStore((state) => state.addService);
+    const removeService = useServicesStore((state) => state.removeService);
+    const reset = useServicesStore((state) => state.reset);
+    const toggle = useServicesStore((state) => state.toggle);
     return (<>
         <div className="min-h-screen pb-32 animate-in fade-in duration-700">
-            <Header />
+            <Header services={services} showCart={toggle} />
 
             <main className="pt-20">
                 <Hero />
-
+                <CartDrawer isOpen={isOpen} onClose={toggle} subtotal="$0" services={services} />
                 <section className="container mx-auto max-w-[1200px] px-6 md:px-16 py-12">
                     <div className="space-y-6 md:space-y-8 max-w-3xl mx-auto">
-                        <ServiceCard
-                            category="MASSAGE"
-                            title="Signature Rejuvenation Massage"
-                            description="A holistic 60-minute therapy."
-                            image="https://lh3.googleusercontent.com/aida-public/AB6AXuCFfKipIf2VyiZEQ8S_bakF7OvPY9IE04W0W3bxfvLysG5t-_rzamvsYnXYFTAS_KhHdvudwgCxZmL1uRnSDVOo9EaiJvwxC5vcSTCgEb4Uo-wlulLGkfysAaRKnxt3jG9x_cTQolIS30tK515f90XLsFYDe2KajUPXAlVCJhQ3kt5m0AU-QA-eQ698wdHWrFkCXLo2xkEFPB1NWyoQMNxUCjFvvwoM7J8uMkGulmscOtdqvQsyb98D4m5gKlwJvNDYd192plamArTJ"
-                        />
-                        <ServiceCard
-                            category="FACIAL"
-                            title="Luminous Gold Facial"
-                            description="Deep cleansing with gold-infused serums."
-                            image="https://lh3.googleusercontent.com/aida-public/AB6AXuCa-NQt0f388FP8_EscD3k9-RvgmjGy2rL5HkUlYXpSG1s9F5Ah2EYFTd3d6E6tmZ0pxFZldSx0jlrLi0UcNLb68MVuP5902Xuzh0n2qkl3GkqRj3f1c9JFUHEvD91pM3M1N_3H28ipHY80Fg_l72M7TecTIWnJrcfjC54IphynmxfeMhIZoJIPNh9ds15fWG3PfaZ2XEwFz1f0b9KhNTEzBVNpDS6giHLHsGZ1Jra6yHBgwnx5jKr76kJ-TVDo67oIUoBoOTF2xNa0"
-                        />
-                        <ServiceCard
-                            category="HAIR"
-                            title="Artisanal Hair Styling"
-                            description="Precision cut and signature blow-out."
-                            image="https://lh3.googleusercontent.com/aida-public/AB6AXuAe7bK7yJN7dxzV-SFAhiBTAgoGjpgd6vwKW3gGRzkcwz0jPkIit2h6inJIdkHEXF_XAl5_L5qq5XzPv3Z8sulH2qaE3w7S-MDZvNymaFuK29VoEa6PzNnZYLMeye1_jiCg_H7VN_7Fe4KmOePSLalxqaFdxV1_1bH7CmYmAwQsgJAf4n-K0bCSSgMXQO9yGsYm1RjLD1ryKkYqO_FmGRQ4mDEhCBBwqb85-yAcVKvY17HjjBR-YpX67ByVWK2Pm7vC-mU2cVR0XGss"
-                        />
-                        <ServiceCard
-                            category="NAILS"
-                            title="Bronze Glow Manicure"
-                            description="Luxury nail care with high-shine finish."
-                            image="https://lh3.googleusercontent.com/aida-public/AB6AXuByDLVyjYkgXYhC09ZeLb1HJ8LnqVL9iOgoajJ7Vxk7cc_l1Sf37UtLMLSnSU3C1ZMFUZziWeyVLItmZXt1vZcuWlFW4ylyB2e5LGvcIPpeV5UUQK8D5qLBGW2ID8PYhjZ7JJr2ntWsAi78rGDB4qSEU0HOBy1P3984m-IkVACJmQ1XWNN5pmJNbK3E_hFph_EL1zHEPgr4FQ5PWz7zQmYftC8M5QZIk5xrQOsNtOcbyqp0tVxQ08Ki3M3An1zCKy4TQ1URK-FDgsSn"
-                        />
+                        {isLoading && <p className="text-center text-[#4e4540]">Loading services...</p>}
+                        {isError && <p className="text-center text-red-500">Failed to load services</p>}
+                        {data?.length > 0 ? (
+                            data.map((item) => (
+                                <ServiceCard
+                                    key={item._id || item.id}
+                                    category={item.category || "SERVICE"}
+                                    title={item.name}
+                                    description={item.description || `${item.durationMinutes ? item.durationMinutes + " mins" : "Duration vary"} • ₹${item.price ?? 0}`}
+                                    duration={item.durationMinutes}
+                                    price={item.price}
+                                    addService={addService}
+                                    image={item.image || "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=400&q=80"}
+                                />
+                            ))
+                        ) : (
+                            !isLoading && <p className="text-center text-[#4e4540]">No services available.</p>
+                        )}
                     </div>
                 </section>
             </main>
