@@ -2,9 +2,9 @@ export const ServiceItem = ({ title, duration, price }) => (
     <li className="flex justify-between items-start hairline-divider pb-6">
         <div>
             <h3 className="text-[18px] text-primary mb-1 font-serif">{title}</h3>
-            <p className="text-on-surface-variant">{duration}</p>
+            <p className="text-on-surface-variant">{duration} mins</p>
         </div>
-        <span className="text-primary font-medium">{price}</span>
+        <span className="text-primary font-medium">₹ {price}</span>
     </li>
 );
 

@@ -1,5 +1,9 @@
+import { useNavigate } from "react-router-dom";
 const CartDrawer = ({ isOpen, onClose, subtotal = "$0", services }) => {
-    console.log(services);
+    const navigate = useNavigate();
+    const checkout = () => {
+        navigate("/salon/checkout");
+    }
     return (
         <>
             {/* Cart Overlay */}
@@ -55,7 +59,7 @@ const CartDrawer = ({ isOpen, onClose, subtotal = "$0", services }) => {
                         <span>Subtotal</span>
                         <span id="cart-subtotal">{subtotal}</span>
                     </div>
-                    <button className="w-full py-3 bg-primary-container text-on-primary font-label-md uppercase tracking-widest rounded-md hover:opacity-90 transition-opacity">
+                    <button onClick={checkout} className="w-full py-3 bg-primary-container text-on-primary font-label-md uppercase tracking-widest rounded-md hover:opacity-90 transition-opacity">
                         Checkout
                     </button>
                 </div>
