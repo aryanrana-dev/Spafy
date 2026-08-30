@@ -4,9 +4,7 @@ import { signup,login,logout } from "../controllers/auth.controller.js";
 import { protectRoute } from "../middleware/auth.middleware.js";
  import { updateProfile } from "../controllers/auth.controller.js";
  import passport from "passport";
-import {
-  googleCallback
-} from "../controllers/authController.js";
+
 
 
 router.post("/signup",signup);

@@ -1,6 +1,5 @@
-
-
 import SalonService from "../models/SalonService.js";
+import Salon from "../models/Salon.js";
 
 // CREATE SERVICE - Salon Owner
 export const createService = async (req, res) => {
@@ -12,6 +11,7 @@ export const createService = async (req, res) => {
             durationMinutes
         } = req.body;
 
+        // Validate required fields
         if (
             !salonId ||
             !masterServiceId ||
@@ -24,6 +24,20 @@ export const createService = async (req, res) => {
             });
         }
 
+        // Check salon ownership
+        const salon = await Salon.findOne({
+            _id: salonId,
+            ownerId: req.user._id
+        });
+
+        if (!salon) {
+            return res.status(403).json({
+                success: false,
+                message: "You do not own this salon"
+            });
+        }
+
+        // Create service
         const service = await SalonService.create({
             salonId,
             masterServiceId,
@@ -39,11 +53,11 @@ export const createService = async (req, res) => {
         });
 
     } catch (error) {
-        console.error(error);
+        console.error("Create service error:", error);
 
         return res.status(500).json({
             success: false,
-            message: error.message
+            message: "Internal server error"
         });
     }
 };
@@ -60,6 +74,7 @@ export const updateService = async (req, res) => {
             isActive
         } = req.body;
 
+        // Find service
         const service = await SalonService.findById(id);
 
         if (!service) {
@@ -69,6 +84,20 @@ export const updateService = async (req, res) => {
             });
         }
 
+        // Check salon ownership
+        const salon = await Salon.findOne({
+            _id: service.salonId,
+            ownerId: req.user._id
+        });
+
+        if (!salon) {
+            return res.status(403).json({
+                success: false,
+                message: "You do not own this salon"
+            });
+        }
+
+        // Update fields
         if (price !== undefined) {
             service.price = price;
         }
@@ -90,11 +119,11 @@ export const updateService = async (req, res) => {
         });
 
     } catch (error) {
-        console.error(error);
+        console.error("Update service error:", error);
 
         return res.status(500).json({
             success: false,
-            message: error.message
+            message: "Internal server error"
         });
     }
 };
@@ -105,12 +134,26 @@ export const deleteService = async (req, res) => {
     try {
         const { id } = req.params;
 
+        // Find service
         const service = await SalonService.findById(id);
 
         if (!service) {
             return res.status(404).json({
                 success: false,
                 message: "Service not found"
+            });
+        }
+
+        // Check salon ownership
+        const salon = await Salon.findOne({
+            _id: service.salonId,
+            ownerId: req.user._id
+        });
+
+        if (!salon) {
+            return res.status(403).json({
+                success: false,
+                message: "You do not own this salon"
             });
         }
 
@@ -125,11 +168,11 @@ export const deleteService = async (req, res) => {
         });
 
     } catch (error) {
-        console.error(error);
+        console.error("Delete service error:", error);
 
         return res.status(500).json({
             success: false,
-            message: error.message
+            message: "Internal server error"
         });
     }
 };
