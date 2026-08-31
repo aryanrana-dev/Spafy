@@ -10,29 +10,18 @@ import Salon from "../models/Salon.js";
 
 export const getAllBooking = async (req, res) => {
     try {
-        // Find salons owned by logged-in user
         const salons = await Salon.find({
             ownerId: req.user._id
         }).select("_id");
 
-        if (salons.length === 0) {
-            return res.status(200).json({
-                success: true,
-                count: 0,
-                bookings: []
-            });
-        }
+        const salonIds = salons.map(salon => salon._id);
 
-        const salonIds = salons.map((salon) => salon._id);
-
-        // Only bookings from owner's salons
         const bookings = await Booking.find({
             salonId: { $in: salonIds }
         })
-            .populate("userId", "-password")
-            .populate("staffId")
+            .populate("userId", "name email phone")
             .populate("salonServiceId")
-            .populate("salonId")
+            .populate("salonId", "name address")
             .sort({
                 appointmentDate: -1,
                 startTime: -1
@@ -61,44 +50,29 @@ export const getAllBooking = async (req, res) => {
 
 export const getTodayBooking = async (req, res) => {
     try {
-        // Find salons owned by logged-in user
         const salons = await Salon.find({
             ownerId: req.user._id
         }).select("_id");
 
-        if (salons.length === 0) {
-            return res.status(200).json({
-                success: true,
-                count: 0,
-                bookings: []
-            });
-        }
+        const salonIds = salons.map(salon => salon._id);
 
-        const salonIds = salons.map((salon) => salon._id);
-
-        // Start of today
         const startOfDay = new Date();
         startOfDay.setHours(0, 0, 0, 0);
 
-        // Start of tomorrow
         const endOfDay = new Date(startOfDay);
         endOfDay.setDate(endOfDay.getDate() + 1);
 
         const bookings = await Booking.find({
             salonId: { $in: salonIds },
-
             appointmentDate: {
                 $gte: startOfDay,
                 $lt: endOfDay
             }
         })
-            .populate("userId", "-password")
-            .populate("staffId")
+            .populate("userId", "name email phone")
             .populate("salonServiceId")
-            .populate("salonId")
-            .sort({
-                startTime: 1
-            });
+            .populate("salonId", "name address")
+            .sort({ startTime: 1 });
 
         return res.status(200).json({
             success: true,
@@ -126,7 +100,6 @@ export const updateBookingStatus = async (req, res) => {
         const { id } = req.params;
         const { status } = req.body;
 
-        // Validate booking ID
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({
                 success: false,
@@ -134,7 +107,6 @@ export const updateBookingStatus = async (req, res) => {
             });
         }
 
-        // Validate status
         const allowedStatuses = [
             "confirmed",
             "completed",
@@ -149,7 +121,6 @@ export const updateBookingStatus = async (req, res) => {
             });
         }
 
-        // Find booking
         const booking = await Booking.findById(id);
 
         if (!booking) {
@@ -159,7 +130,6 @@ export const updateBookingStatus = async (req, res) => {
             });
         }
 
-        // Verify salon ownership
         const salon = await Salon.findOne({
             _id: booking.salonId,
             ownerId: req.user._id
@@ -172,42 +142,20 @@ export const updateBookingStatus = async (req, res) => {
             });
         }
 
-        // Prevent invalid state transitions
-        if (booking.status === "completed") {
-            return res.status(400).json({
-                success: false,
-                message: "Completed booking cannot be changed"
-            });
-        }
-
+        // Final states cannot be changed
         if (
-            booking.status === "cancelled" &&
-            status !== "cancelled"
+            booking.status === "completed" ||
+            booking.status === "cancelled" ||
+            booking.status === "no_show"
         ) {
             return res.status(400).json({
                 success: false,
-                message: "Cancelled booking cannot be reopened"
+                message: "This booking can no longer be changed"
             });
         }
 
-        if (
-            booking.status === "no_show" &&
-            status !== "no_show"
-        ) {
-            return res.status(400).json({
-                success: false,
-                message: "No-show booking cannot be changed"
-            });
-        }
-
-        // Update status
         booking.status = status;
-
-        // Remove payment lock when booking
-        // is no longer payment_pending
-        if (status !== "payment_pending") {
-            booking.lockExpiration = null;
-        }
+        booking.lockExpiration = null;
 
         await booking.save();
 
@@ -232,11 +180,10 @@ export const updateBookingStatus = async (req, res) => {
 // DELETE / CANCEL BOOKING - SALON OWNER
 // =====================================================
 
-export const deleteBooking = async (req, res) => {
+export const cancelBooking = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // Validate ID
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({
                 success: false,
@@ -244,7 +191,6 @@ export const deleteBooking = async (req, res) => {
             });
         }
 
-        // Find booking
         const booking = await Booking.findById(id);
 
         if (!booking) {
@@ -263,19 +209,21 @@ export const deleteBooking = async (req, res) => {
         if (!salon) {
             return res.status(403).json({
                 success: false,
-                message: "You are not authorized to delete this booking"
+                message: "You are not authorized to cancel this booking"
             });
         }
 
-        // Do not physically delete booking history
-        if (booking.status === "completed") {
+        // Booking history should not be changed
+        if (
+            booking.status === "completed" ||
+            booking.status === "cancelled"
+        ) {
             return res.status(400).json({
                 success: false,
-                message: "Completed booking cannot be deleted"
+                message: "This booking cannot be cancelled"
             });
         }
 
-        // Soft cancel instead of deleting
         booking.status = "cancelled";
         booking.lockExpiration = null;
 
@@ -288,7 +236,7 @@ export const deleteBooking = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Delete booking error:", error);
+        console.error("Cancel booking error:", error);
 
         return res.status(500).json({
             success: false,

@@ -4,10 +4,11 @@ import paymentRoutes from "./src/routes/paymentRoutes.js"
 import cors from "cors"
 import authRoutes from "./src/routes/auth.route.js"
 import { connectDB } from "./src/lib/db.js"
-import bookingRoutes from "./src/routes/bookingRoutes.js"
 import {ownerRoutes} from "./src/routes/ownerRoute.js"
 import passport from "./src/config/passport.js"
 import googleRoutes from "./routes/googleRoutes.js";
+import userBookingRoute from "./src/routes/userBookingRoute.js"
+import ownerBookingRoute from "./src/routes/ownerBookingRoute.js"
 
 
 app.use(cors({origin:"http://localhost:5173",credentials:true
@@ -16,9 +17,9 @@ app.use(cors({origin:"http://localhost:5173",credentials:true
 
 app.use("/api/auth", googleRoutes);
 app.use(passport.initialize());
-app.use("/api/bookings",bookingRoutes);
+app.use("/api/user-booking",userBookingRoute);
 app.use("/api/auth",authRoutes);
-app.use("api/service",ownerRoutes)
+app.use("api/owner",ownerBookingRoute)
 
 
 app.use(express.json())//req.body
