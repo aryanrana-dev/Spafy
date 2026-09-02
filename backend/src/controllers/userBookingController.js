@@ -20,62 +20,46 @@ export const createBooking = async (req, res) => {
     try {
         const {
             salonId,
-            staffId,
             salonServiceId,
             appointmentDate,
             startTime
         } = req.body;
 
-        // Required fields
-        if (
-            !salonId ||
-            !staffId ||
-            !salonServiceId ||
-            !appointmentDate ||
-            !startTime
-        ) {
+        if (!salonId || !salonServiceId || !appointmentDate || !startTime) {
             return res.status(400).json({
                 success: false,
                 message: "All fields are required"
             });
         }
 
-        // Validate MongoDB IDs
         if (
             !mongoose.Types.ObjectId.isValid(salonId) ||
-            !mongoose.Types.ObjectId.isValid(staffId) ||
             !mongoose.Types.ObjectId.isValid(salonServiceId)
         ) {
             return res.status(400).json({
                 success: false,
-                message: "Invalid salon, staff or service ID"
+                message: "Invalid salon or service ID"
             });
         }
 
-        // Validate dates
         const appointment = new Date(appointmentDate);
         const start = new Date(startTime);
 
         if (
             Number.isNaN(appointment.getTime()) ||
-            Number.isNaN(start.getTime())
+            Number.isNaN(start.getTime()) ||
+            start <= new Date()
         ) {
             return res.status(400).json({
                 success: false,
-                message: "Invalid appointment date or start time"
+                message: "Invalid or past appointment time"
             });
         }
 
-        // Appointment must be in the future
-        if (start <= new Date()) {
-            return res.status(400).json({
-                success: false,
-                message: "Appointment time must be in the future"
-            });
-        }
-
-        // Check salon
-        const salon = await Salon.findById(salonId);
+        const salon = await Salon.findOne({
+            _id: salonId,
+            isActive: true
+        }).select("_id");
 
         if (!salon) {
             return res.status(404).json({
@@ -84,86 +68,33 @@ export const createBooking = async (req, res) => {
             });
         }
 
-        // Check staff
-        const staff = await Staff.findById(staffId);
+        const service = await SalonService.findOne({
+            _id: salonServiceId,
+            salonId,
+            isActive: true
+        });
 
-        if (!staff || !staff.isActive) {
+        if (!service) {
             return res.status(404).json({
                 success: false,
-                message: "Staff not found or inactive"
+                message: "Service not found"
             });
         }
 
-        // Staff must belong to this salon
-        if (
-            staff.salonId.toString() !==
-            salonId.toString()
-        ) {
-            return res.status(400).json({
-                success: false,
-                message: "Staff does not belong to this salon"
-            });
-        }
-
-        // Check service
-        const service = await SalonService.findById(
-            salonServiceId
-        );
-
-        if (!service || !service.isActive) {
-            return res.status(404).json({
-                success: false,
-                message: "Service not found or inactive"
-            });
-        }
-
-        // Service must belong to this salon
-        if (
-            service.salonId.toString() !==
-            salonId.toString()
-        ) {
-            return res.status(400).json({
-                success: false,
-                message: "Service does not belong to this salon"
-            });
-        }
-
-        // Staff must provide this service
-        const providesService =
-            Array.isArray(staff.servicesProvided) &&
-            staff.servicesProvided.some(
-                (id) =>
-                    id.toString() ===
-                    salonServiceId.toString()
-            );
-
-        if (!providesService) {
-            return res.status(400).json({
-                success: false,
-                message: "Selected staff does not provide this service"
-            });
-        }
-
-        // Calculate end time
         const end = calculateEndTime(
             start,
             service.durationMinutes
         );
 
-        if (
-            !end ||
-            Number.isNaN(end.getTime()) ||
-            end <= start
-        ) {
+        if (!end || end <= start) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid appointment duration"
             });
         }
 
-        // Check availability
         const available = await isSlotAvailable(
-            staffId,
+            salonId,
             start,
             end
         );
@@ -175,11 +106,9 @@ export const createBooking = async (req, res) => {
             });
         }
 
-        // Create booking
         const booking = await Booking.create({
             salonId,
             userId: req.user._id,
-            staffId,
             salonServiceId,
             appointmentDate: appointment,
             startTime: start,
@@ -214,12 +143,9 @@ export const getMyBookings = async (req, res) => {
         const bookings = await Booking.find({
             userId: req.user._id
         })
-            .populate("salonId")
-            .populate("staffId")
-            .populate("salonServiceId")
-            .sort({
-                appointmentDate: -1
-            });
+            .populate("salonId", "name address")
+            .populate("salonServiceId", "price durationMinutes")
+            .sort({ appointmentDate: -1 });
 
         return res.status(200).json({
             success: true,
@@ -246,7 +172,6 @@ export const getBookingById = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // Validate ID
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({
                 success: false,
@@ -254,16 +179,12 @@ export const getBookingById = async (req, res) => {
             });
         }
 
-        // IMPORTANT:
-        // Only search for the authenticated user's booking.
-        // This prevents IDOR.
         const booking = await Booking.findOne({
             _id: id,
             userId: req.user._id
         })
-            .populate("salonId")
-            .populate("staffId")
-            .populate("salonServiceId");
+            .populate("salonId", "name address")
+            .populate("salonServiceId", "price durationMinutes");
 
         if (!booking) {
             return res.status(404).json({
@@ -296,7 +217,6 @@ export const cancelBooking = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // Validate ID
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({
                 success: false,
@@ -304,7 +224,6 @@ export const cancelBooking = async (req, res) => {
             });
         }
 
-        // Only find user's own booking
         const booking = await Booking.findOne({
             _id: id,
             userId: req.user._id
@@ -317,16 +236,13 @@ export const cancelBooking = async (req, res) => {
             });
         }
 
-        // Cannot cancel finished bookings
         if (
             booking.status === "completed" ||
-            booking.status === "cancelled" ||
-            booking.status === "no_show"
+            booking.status === "cancelled"
         ) {
             return res.status(400).json({
                 success: false,
-                message:
-                    `Booking cannot be cancelled because it is ${booking.status}`
+                message: "Booking cannot be cancelled"
             });
         }
 
@@ -359,12 +275,8 @@ export const cancelBooking = async (req, res) => {
 export const rescheduleBooking = async (req, res) => {
     try {
         const { id } = req.params;
-        const {
-            appointmentDate,
-            startTime
-        } = req.body;
+        const { appointmentDate, startTime } = req.body;
 
-        // Validate ID
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({
                 success: false,
@@ -372,16 +284,13 @@ export const rescheduleBooking = async (req, res) => {
             });
         }
 
-        // Required fields
         if (!appointmentDate || !startTime) {
             return res.status(400).json({
                 success: false,
-                message:
-                    "Appointment date and start time are required"
+                message: "Appointment date and start time are required"
             });
         }
 
-        // Only user's own booking
         const booking = await Booking.findOne({
             _id: id,
             userId: req.user._id
@@ -394,7 +303,6 @@ export const rescheduleBooking = async (req, res) => {
             });
         }
 
-        // Validate status
         if (
             booking.status === "completed" ||
             booking.status === "cancelled" ||
@@ -402,101 +310,65 @@ export const rescheduleBooking = async (req, res) => {
         ) {
             return res.status(400).json({
                 success: false,
-                message:
-                    `Booking cannot be rescheduled because it is ${booking.status}`
+                message: "Booking cannot be rescheduled"
             });
         }
 
-        // Validate new dates
-        const newAppointmentDate =
-            new Date(appointmentDate);
-
-        const newStart = new Date(startTime);
+        const appointment = new Date(appointmentDate);
+        const start = new Date(startTime);
 
         if (
-            Number.isNaN(newAppointmentDate.getTime()) ||
-            Number.isNaN(newStart.getTime())
+            Number.isNaN(appointment.getTime()) ||
+            Number.isNaN(start.getTime()) ||
+            start <= new Date()
         ) {
             return res.status(400).json({
                 success: false,
-                message:
-                    "Invalid appointment date or start time"
+                message: "Invalid or past appointment time"
             });
         }
 
-        // New appointment must be future
-        if (newStart <= new Date()) {
-            return res.status(400).json({
+        const service = await SalonService.findOne({
+            _id: booking.salonServiceId,
+            salonId: booking.salonId,
+            isActive: true
+        });
+
+        if (!service) {
+            return res.status(404).json({
                 success: false,
-                message:
-                    "New appointment time must be in the future"
+                message: "Service not found"
             });
         }
 
-        // Get existing service
-        const service = await SalonService.findById(
-            booking.salonServiceId
-        );
-
-        if (!service || !service.isActive) {
-            return res.status(400).json({
-                success: false,
-                message:
-                    "Booking service is no longer available"
-            });
-        }
-
-        // Calculate new end time
-        const newEnd = calculateEndTime(
-            newStart,
+        const end = calculateEndTime(
+            start,
             service.durationMinutes
         );
 
-        if (
-            !newEnd ||
-            Number.isNaN(newEnd.getTime()) ||
-            newEnd <= newStart
-        ) {
-            return res.status(400).json({
-                success: false,
-                message:
-                    "Invalid appointment duration"
-            });
-        }
-
-        // Check availability
-        // Current booking is excluded
         const available = await isSlotAvailable(
-            booking.staffId,
-            newStart,
-            newEnd,
+            booking.salonId,
+            start,
+            end,
             booking._id
         );
 
         if (!available) {
             return res.status(409).json({
                 success: false,
-                message:
-                    "Selected slot is already booked"
+                message: "Selected slot is already booked"
             });
         }
 
-        // Update
-        booking.appointmentDate =
-            newAppointmentDate;
-
-        booking.startTime = newStart;
-        booking.endTime = newEnd;
-
-        booking.status = "payment_pending";
-        booking.lockExpiration = null;
+        booking.appointmentDate = appointment;
+        booking.startTime = start;
+        booking.endTime = end;
 
         await booking.save();
 
         return res.status(200).json({
             success: true,
-            message:
-                "Booking rescheduled successfully",
+            message: "Booking rescheduled successfully",
             booking
         });
 
@@ -517,148 +389,65 @@ export const rescheduleBooking = async (req, res) => {
 
 export const checkSlotAvailability = async (req, res) => {
     try {
-        const {
-            staffId,
-            salonServiceId,
-            startTime
-        } = req.body;
+        const { salonId, startTime, salonServiceId } = req.query;
 
-        // Required fields
-        if (
-            !staffId ||
-            !salonServiceId ||
-            !startTime
-        ) {
+        if (!salonId || !startTime || !salonServiceId) {
             return res.status(400).json({
                 success: false,
-                message:
-                    "Staff, service and start time are required"
+                message: "Salon, service and start time are required"
             });
         }
 
-        // Validate IDs
         if (
-            !mongoose.Types.ObjectId.isValid(staffId) ||
+            !mongoose.Types.ObjectId.isValid(salonId) ||
             !mongoose.Types.ObjectId.isValid(salonServiceId)
         ) {
             return res.status(400).json({
                 success: false,
-                message:
-                    "Invalid staff or service ID"
+                message: "Invalid salon or service ID"
             });
         }
 
-        // Validate time
         const start = new Date(startTime);
 
-        if (Number.isNaN(start.getTime())) {
+        if (Number.isNaN(start.getTime()) || start <= new Date()) {
             return res.status(400).json({
                 success: false,
-                message: "Invalid start time"
+                message: "Invalid or past start time"
             });
         }
 
-        if (start <= new Date()) {
-            return res.status(400).json({
-                success: false,
-                message:
-                    "Start time must be in the future"
-            });
-        }
+        const service = await SalonService.findOne({
+            _id: salonServiceId,
+            salonId,
+            isActive: true
+        });
 
-        // Check staff
-        const staff = await Staff.findById(staffId);
-
-        if (!staff || !staff.isActive) {
+        if (!service) {
             return res.status(404).json({
                 success: false,
-                message:
-                    "Staff not found or inactive"
+                message: "Service not found"
             });
         }
 
-        // Check service
-        const service =
-            await SalonService.findById(
-                salonServiceId
-            );
-
-        if (!service || !service.isActive) {
-            return res.status(404).json({
-                success: false,
-                message:
-                    "Service not found or inactive"
-            });
-        }
-
-        // Staff and service must belong
-        // to the same salon
-        if (
-            staff.salonId.toString() !==
-            service.salonId.toString()
-        ) {
-            return res.status(400).json({
-                success: false,
-                message:
-                    "Staff and service do not belong to the same salon"
-            });
-        }
-
-        // Staff must provide service
-        const providesService =
-            Array.isArray(staff.servicesProvided) &&
-            staff.servicesProvided.some(
-                (id) =>
-                    id.toString() ===
-                    salonServiceId.toString()
-            );
-
-        if (!providesService) {
-            return res.status(400).json({
-                success: false,
-                message:
-                    "Selected staff does not provide this service"
-            });
-        }
-
-        // Calculate end time
         const end = calculateEndTime(
             start,
             service.durationMinutes
         );
 
-        if (
-            !end ||
-            Number.isNaN(end.getTime()) ||
-            end <= start
-        ) {
-            return res.status(400).json({
-                success: false,
-                message:
-                    "Invalid appointment duration"
-            });
-        }
-
-        // Check availability
-        const available =
-            await isSlotAvailable(
-                staffId,
-                start,
-                end
-            );
+        const available = await isSlotAvailable(
+            salonId,
+            start,
+            end
+        );
 
         return res.status(200).json({
             success: true,
-            available,
-            startTime: start,
-            endTime: end
+            available
         });
 
     } catch (error) {
-        console.error(
-            "Check slot availability error:",
-            error
-        );
+        console.error("Check slot availability error:", error);
 
         return res.status(500).json({
             success: false,

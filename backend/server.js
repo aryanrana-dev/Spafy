@@ -17,9 +17,9 @@ app.use(cors({origin:"http://localhost:5173",credentials:true
 
 app.use("/api/auth", googleRoutes);
 app.use(passport.initialize());
-app.use("/api/user-booking",userBookingRoute);
+app.use("/api/user/booking",userBookingRoute);
 app.use("/api/auth",authRoutes);
-app.use("api/owner",ownerBookingRoute)
+app.use("api/owner/booking",ownerBookingRoute)
 
 
 app.use(express.json())//req.body

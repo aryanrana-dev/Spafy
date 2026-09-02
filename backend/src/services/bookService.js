@@ -1,24 +1,26 @@
-
 import mongoose from "mongoose";
 import Booking from "../models/Booking.js";
 
 
+// =====================================================
 // CALCULATE END TIME
-
+// =====================================================
 
 export const calculateEndTime = (startTime, durationMinutes) => {
+
     const start = new Date(startTime);
+    const duration = Number(durationMinutes);
 
     if (
         Number.isNaN(start.getTime()) ||
-        !Number.isFinite(Number(durationMinutes)) ||
-        Number(durationMinutes) <= 0
+        !Number.isFinite(duration) ||
+        duration <= 0
     ) {
         return null;
     }
 
     return new Date(
-        start.getTime() + Number(durationMinutes) * 60 * 1000
+        start.getTime() + duration * 60 * 1000
     );
 };
 
@@ -28,13 +30,13 @@ export const calculateEndTime = (startTime, durationMinutes) => {
 // =====================================================
 
 export const isSlotAvailable = async (
-    staffId,
+    salonId,
     startTime,
     endTime,
     excludeBookingId = null
 ) => {
 
-    if (!mongoose.Types.ObjectId.isValid(staffId)) {
+    if (!mongoose.Types.ObjectId.isValid(salonId)) {
         return false;
     }
 
@@ -50,25 +52,25 @@ export const isSlotAvailable = async (
     }
 
     const query = {
-        staffId,
+        salonId,
+
         status: {
             $in: ["payment_pending", "confirmed"]
         },
 
-        // Overlap condition:
-        // existing.start < requested.end
+        // Existing booking starts before requested booking ends
         startTime: {
             $lt: end
         },
 
-        // existing.end > requested.start
+        // Existing booking ends after requested booking starts
         endTime: {
             $gt: start
         }
     };
 
     // Used during rescheduling
-    // so the current booking doesn't conflict with itself
+    // Ignore the current booking itself
     if (excludeBookingId) {
 
         if (!mongoose.Types.ObjectId.isValid(excludeBookingId)) {
@@ -80,10 +82,10 @@ export const isSlotAvailable = async (
         };
     }
 
-    const booking = await Booking
+    const conflictingBooking = await Booking
         .findOne(query)
         .select("_id")
         .lean();
 
-    return !booking;
+    return !conflictingBooking;
 };
