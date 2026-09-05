@@ -9,7 +9,7 @@ import passport from "./src/config/passport.js"
 import googleRoutes from "./routes/googleRoutes.js";
 import userBookingRoute from "./src/routes/userBookingRoute.js"
 import ownerBookingRoute from "./src/routes/ownerBookingRoute.js"
-
+import salonRoutes from "./src/routes/salonRoute.js"
 
 app.use(cors({origin:"http://localhost:5173",credentials:true
 
@@ -20,6 +20,7 @@ app.use(passport.initialize());
 app.use("/api/user/booking",userBookingRoute);
 app.use("/api/auth",authRoutes);
 app.use("api/owner/booking",ownerBookingRoute)
+app.use("/api/salons", salonRoutes);
 
 
 app.use(express.json())//req.body
