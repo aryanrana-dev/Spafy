@@ -4,15 +4,21 @@ import paymentRoutes from "./src/routes/paymentRoutes.js"
 import cors from "cors"
 import authRoutes from "./src/routes/auth.route.js"
 import { connectDB } from "./src/lib/db.js"
-import salonRoutes from "./src/routes/salon.js"
-
-app.use(express.json());
+import {ownerRoutes} from "./src/routes/ownerRoute.js"
+import userBookingRoute from "./src/routes/userBookingRoute.js"
+import ownerBookingRoute from "./src/routes/ownerBookingRoute.js"
+import salonRoutes from "./src/routes/salonRoute.js"
 
 app.use(cors({ origin: "http://localhost:5173", credentials: true }))
 
 app.use("/api/auth", authRoutes);
 
-app.use("/api/salon", salonRoutes);
+
+app.use("/api/user/booking",userBookingRoute);
+app.use("/api/auth",authRoutes);
+app.use("api/owner/booking",ownerBookingRoute)
+app.use("/api/salons", salonRoutes);
+
 
 app.use("/api/payment", paymentRoutes);
 
