@@ -17,12 +17,12 @@ const bookingSchema = new mongoose.Schema(
             index: true
         },
 
-        staffId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Staff",
-            required: true,
-            index: true
-        },
+        // staffId: {
+        //     type: mongoose.Schema.Types.ObjectId,
+        //     ref: "Staff",
+        //     required: true,
+        //     index: true
+        // },
 
         salonServiceId: {
             type: mongoose.Schema.Types.ObjectId,
