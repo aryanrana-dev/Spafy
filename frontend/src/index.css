@@ -1,1 +1,11 @@
 @import "tailwindcss";
+
+@theme {
+  --color-surface: var(--surface, #fbf9f4);
+  --color-surface-container-low: var(--surface-container-low, #f5f3ee);
+  --color-primary: var(--primary, #33251d);
+  --color-on-primary: var(--on-primary, #ffffff);
+  --color-on-surface-variant: var(--on-surface-variant, #4e4540);
+  --color-outline-variant: var(--outline-variant, #d2c4bd);
+  --color-primary-container: var(--primary-container, #4a3b32);
+}

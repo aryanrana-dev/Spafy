@@ -1,6 +1,8 @@
 import { ServiceItem, BookingSlot, CostBreakdown } from "./helper"
+import { handlePayment } from "../pages/Razorpay"
 
-export default function ReservationCard() {
+export default function ReservationCard({ selectedServices }) {
+  console.log(selectedServices);
   return (
     <div className="max-w-3xl w-full mx-auto">
       <div className="bg-white p-16 hairline-border relative">
@@ -18,8 +20,9 @@ export default function ReservationCard() {
         <section className="mb-12">
           <h2 className="text-[12px] font-medium text-outline uppercase mb-6 tracking-widest">Selected Services</h2>
           <ul className="space-y-6">
-            <ServiceItem title="Signature Rejuvenation Massage" duration="60 minutes" price="120.00" />
-            <ServiceItem title="Aromatherapy Add-on" duration="Lavender & Chamomile" price="25.00" />
+            {selectedServices?.length > 0 && selectedServices.map((service) => (
+              <ServiceItem key={service._id} title={service.title} duration={service.duration} price={service.price} />
+            ))}
           </ul>
         </section>
 
@@ -34,7 +37,7 @@ export default function ReservationCard() {
               By selecting the checkbox you agree to the refund policy and terms and conditions.
             </span>
           </label>
-          <button className="bg-primary-container text-white w-full md:w-auto px-12 py-4 text-[14px] font-medium uppercase tracking-widest hover:bg-tertiary-container transition-colors duration-300">
+          <button onClick={handlePayment} className="bg-primary-container text-white w-full md:w-auto px-12 py-4 text-[14px] font-medium uppercase tracking-widest hover:bg-tertiary-container transition-colors duration-300">
             Click here to go to payments
           </button>
           <div className="mt-6 flex items-center justify-center gap-2 text-outline">

@@ -1,0 +1,13 @@
+# <type>(<scope>): <short description>
+# 
+# --- Allowed Types ---
+# feat     : A new feature (e.g., feat(auth): add phone OTP route)
+# fix      : A bug fix (e.g., fix(calendar): resolve double booking bug)
+# chore    : Maintenance/config (e.g., chore(deps): install razorpay sdk)
+# refactor : Code restructuring without changing behavior
+# docs     : Documentation changes
+#
+# --- Scope Examples ---
+# backend, frontend, auth, payments, schema, ui
+# ----------------------------------------------------------------------
+# Remember: Keep the subject line under 50 characters and use imperative mood!
