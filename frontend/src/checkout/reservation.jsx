@@ -1,8 +1,14 @@
+import { useState } from "react";
 import { ServiceItem, BookingSlot, CostBreakdown } from "./helper"
 import { handlePayment } from "../pages/Razorpay"
+import { useCheckoutStore } from "../stores/checkout-store";
 
 export default function ReservationCard({ selectedServices }) {
-  console.log(selectedServices);
+  const [date, setDate] = useState('2026-10-26');
+  const [time, setTime] = useState('2:00 PM');
+
+  const userInfo = useCheckoutStore((state) => state.userInfo);
+  const getTotal = useCheckoutStore((state) => state.getTotal);
   return (
     <div className="max-w-3xl w-full mx-auto">
       <div className="bg-white p-16 hairline-border relative">
@@ -26,9 +32,14 @@ export default function ReservationCard({ selectedServices }) {
           </ul>
         </section>
 
-        <BookingSlot date="Saturday, October 26" time="2:00 PM" />
+        <BookingSlot
+          date={date}
+          onDateChange={setDate}
+          time={time}
+          onTimeChange={setTime}
+        />
 
-        <CostBreakdown subtotal="145.00" tax="12.33" total="157.33" />
+        <CostBreakdown subtotal={getTotal()} tax={0} total={getTotal()} />
 
         <div className="mt-12 flex flex-col items-center text-center">
           <label className="flex items-start gap-3 mb-8 cursor-pointer max-w-md text-left">
