@@ -12,7 +12,6 @@ import { useServices } from '../queries/services-queries';
 export default function HomepageLayout() {
 
     const { data, isLoading, isError, error } = useServices();
-    console.log(data);
 
     const services = useServicesStore((state) => state.services);
     const isOpen = useServicesStore((state) => state.isOpen);

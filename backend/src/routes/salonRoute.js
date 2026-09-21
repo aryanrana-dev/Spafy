@@ -11,6 +11,7 @@ import {
 
 import { protectRoute } from "../middleware/auth.middleware.js";
 import { ownerOnly } from "../middleware/owner.middleware.js";
+import { fetchSalonService } from "../controllers/salon.js";
 
 const router = express.Router();
 
@@ -21,6 +22,8 @@ const router = express.Router();
 
 // Get all active salons
 router.get("/", getAllSalons);
+
+router.get("/fetch-services", fetchSalonService);
 
 // Get salons owned by logged-in owner
 // This must come before /:id
