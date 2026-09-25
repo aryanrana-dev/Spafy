@@ -5,4 +5,4 @@ import { paymentController } from "../controllers/paymentController.js"
 
 router.post("/create-order",paymentController)
 
-export default router
+export default router;

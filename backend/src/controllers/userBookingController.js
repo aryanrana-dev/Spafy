@@ -2,7 +2,6 @@
 import mongoose from "mongoose";
 
 import Booking from "../models/Booking.js";
-import Staff from "../models/Staff.js";
 import SalonService from "../models/SalonService.js";
 import Salon from "../models/Salon.js";
 
@@ -106,15 +105,20 @@ export const createBooking = async (req, res) => {
             });
         }
 
+        // 15-minute lock while customer completes payment
+        const lockExpiration = new Date(Date.now() + 15 * 60 * 1000);
+
         const booking = await Booking.create({
             salonId,
             userId: req.user._id,
             salonServiceId,
+            services: [salonServiceId],
+            totalAmount: service.price,
             appointmentDate: appointment,
             startTime: start,
             endTime: end,
             status: "payment_pending",
-            lockExpiration: null
+            lockExpiration
         });
 
         return res.status(201).json({
@@ -389,7 +393,9 @@ export const rescheduleBooking = async (req, res) => {
 
 export const checkSlotAvailability = async (req, res) => {
     try {
-        const { salonId, startTime, salonServiceId } = req.query;
+        const salonId = req.body?.salonId || req.query?.salonId;
+        const startTime = req.body?.startTime || req.query?.startTime;
+        const salonServiceId = req.body?.salonServiceId || req.query?.salonServiceId;
 
         if (!salonId || !startTime || !salonServiceId) {
             return res.status(400).json({

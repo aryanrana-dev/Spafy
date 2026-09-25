@@ -1,8 +1,6 @@
-
 import express from "express";
 
 import { protectRoute } from "../middleware/auth.middleware.js";
-
 import {
     createBooking,
     getMyBookings,
@@ -23,16 +21,16 @@ router.post("/book", createBooking);
 // Get logged-in user's bookings
 router.get("/my-bookings", getMyBookings);
 
-// Get one of the logged-in user's bookings
-router.get("/:id", getBookingById);
+// Check slot availability (placed before /:id)
+router.post("/check-slot", checkSlotAvailability);
 
 // Cancel user's own booking
 router.patch("/cancel/:id", cancelBooking);
 
-// Check slot availability
-router.post("/check-slot", checkSlotAvailability);
-
 // Reschedule user's own booking
 router.patch("/reschedule/:id", rescheduleBooking);
+
+// Get one of the logged-in user's bookings
+router.get("/:id", getBookingById);
 
 export default router;

@@ -51,12 +51,18 @@ export const isSlotAvailable = async (
         return false;
     }
 
+    const now = new Date();
+
     const query = {
         salonId,
 
-        status: {
-            $in: ["payment_pending", "confirmed"]
-        },
+        $or: [
+            { status: "confirmed" },
+            {
+                status: "payment_pending",
+                lockExpiration: { $gt: now }
+            }
+        ],
 
         // Existing booking starts before requested booking ends
         startTime: {
