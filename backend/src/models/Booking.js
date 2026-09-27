@@ -17,17 +17,22 @@ const bookingSchema = new mongoose.Schema(
             index: true
         },
 
-        // staffId: {
-        //     type: mongoose.Schema.Types.ObjectId,
-        //     ref: "Staff",
-        //     required: true,
-        //     index: true
-        // },
-
         salonServiceId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "SalonService",
-            required: true
+            required: false
+        },
+
+        services: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "SalonService"
+            }
+        ],
+
+        totalAmount: {
+            type: Number,
+            default: 0
         },
 
         // Date on which the appointment takes place
@@ -77,13 +82,6 @@ const bookingSchema = new mongoose.Schema(
 // =====================================================
 // INDEXES
 // =====================================================
-
-// Helps availability queries for a staff member
-bookingSchema.index({
-    staffId: 1,
-    startTime: 1,
-    endTime: 1
-});
 
 // Helps user's booking history
 bookingSchema.index({

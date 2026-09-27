@@ -10,26 +10,47 @@ import Salon from "../models/Salon.js";
 
 export const getAllBooking = async (req, res) => {
     try {
+        const { page = 1, limit = 20, status } = req.query;
+        const pageNum = Math.max(1, parseInt(page, 10) || 1);
+        const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+        const skip = (pageNum - 1) * limitNum;
+
         const salons = await Salon.find({
             ownerId: req.user._id
         }).select("_id");
 
         const salonIds = salons.map(salon => salon._id);
 
-        const bookings = await Booking.find({
+        const filter = {
             salonId: { $in: salonIds }
-        })
-            .populate("userId", "name email phone")
-            .populate("salonServiceId")
-            .populate("salonId", "name address")
-            .sort({
-                appointmentDate: -1,
-                startTime: -1
-            });
+        };
+
+        if (status) {
+            filter.status = status;
+        }
+
+        const [bookings, total] = await Promise.all([
+            Booking.find(filter)
+                .populate("userId", "name email phone")
+                .populate("salonServiceId")
+                .populate("services")
+                .populate("salonId", "name address")
+                .sort({
+                    appointmentDate: -1,
+                    startTime: -1
+                })
+                .skip(skip)
+                .limit(limitNum)
+                .lean(),
+            Booking.countDocuments(filter)
+        ]);
 
         return res.status(200).json({
             success: true,
             count: bookings.length,
+            total,
+            page: pageNum,
+            pages: Math.ceil(total / limitNum),
             bookings
         });
 

@@ -48,7 +48,10 @@ export default function ReservationCard({ selectedServices }) {
               By selecting the checkbox you agree to the refund policy and terms and conditions.
             </span>
           </label>
-          <button onClick={handlePayment} className="bg-primary-container text-white w-full md:w-auto px-12 py-4 text-[14px] font-medium uppercase tracking-widest hover:bg-tertiary-container transition-colors duration-300">
+          <button
+            onClick={() => handlePayment({ amount: getTotal() || 500, userInfo })}
+            className="bg-primary-container text-white w-full md:w-auto px-12 py-4 text-[14px] font-medium uppercase tracking-widest hover:bg-tertiary-container transition-colors duration-300"
+          >
             Click here to go to payments
           </button>
           <div className="mt-6 flex items-center justify-center gap-2 text-outline">

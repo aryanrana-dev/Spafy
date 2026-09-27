@@ -1,29 +1,42 @@
 import { z } from "zod";
 
+const phoneRegex = /^\+?[1-9]\d{8,14}$/;
 
-// Phone number validation
-const phone = z
-    .string()
-    .trim()
-    .regex(
-        /^\+?[1-9]\d{9,14}$/,
-        "Invalid phone number"
-    );
-
-
-// Create/Register User
+// Register User Validator
 export const registerUserSchema = z.object({
-
     body: z.object({
-
-        phone: phone,
-
         name: z
-            .string()
+            .string({ required_error: "Name is required" })
             .trim()
             .min(2, "Name must be at least 2 characters")
             .max(50, "Name cannot exceed 50 characters"),
 
+        email: z
+            .string({ required_error: "Email is required" })
+            .trim()
+            .email("Invalid email address")
+            .toLowerCase(),
+
+        password: z
+            .string({ required_error: "Password is required" })
+            .min(6, "Password must be at least 6 characters")
+            .max(100, "Password cannot exceed 100 characters"),
+
+        phone: z
+            .string()
+            .trim()
+            .regex(phoneRegex, "Invalid phone number format")
+            .optional(),
+
+        role: z
+            .enum(["user", "owner", "admin"])
+            .optional()
+    })
+});
+
+// Login User Validator (supports email or phone login)
+export const loginUserSchema = z.object({
+    body: z.object({
         email: z
             .string()
             .trim()
@@ -31,35 +44,25 @@ export const registerUserSchema = z.object({
             .toLowerCase()
             .optional(),
 
-        password: z
+        phone: z
             .string()
-            .min(8, "Password must be at least 8 characters")
-            .max(100, "Password cannot exceed 100 characters")
+            .trim()
+            .optional(),
 
-    }).strict(),
-
-    params: z.object({}).strict(),
-
-    query: z.object({}).strict()
-
+        password: z
+            .string({ required_error: "Password is required" })
+            .min(1, "Password is required")
+    }).refine((data) => data.email || data.phone, {
+        message: "Either email or phone is required to login",
+        path: ["email"]
+    })
 });
 
-
-// Login User
-export const loginUserSchema = z.object({
-
+// Update Profile Validator
+export const updateProfileSchema = z.object({
     body: z.object({
-
-        phone: phone,
-
-        password: z
-            .string()
-            .min(1, "Password is required")
-
-    }).strict(),
-
-    params: z.object({}).strict(),
-
-    query: z.object({}).strict()
-
+        name: z.string().trim().min(2).max(50).optional(),
+        phone: z.string().trim().regex(phoneRegex, "Invalid phone number").optional(),
+        profilePic: z.string().optional()
+    })
 });

@@ -7,7 +7,11 @@ import User from "../models/User.js";
 
 export const protectRoute = async (req, res, next) => {
     try {
-        const token = req.cookies?.jwt;
+        const token =
+            req.cookies?.jwt ||
+            (req.headers.authorization?.startsWith("Bearer ")
+                ? req.headers.authorization.split(" ")[1]
+                : null);
 
         // No token
         if (!token) {

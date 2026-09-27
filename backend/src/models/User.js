@@ -1,47 +1,63 @@
 
 import mongoose from "mongoose";
 
-const userSchema = new mongoose.Schema({
-    phone: {
-        type: String,
-        required: true,
-        unique: true,
-        index: true
-    },
+const userSchema = new mongoose.Schema(
+    {
+        name: {
+            type: String,
+            required: true,
+            trim: true
+        },
 
-    name: {
-        type: String,
-        required: true,
-        trim: true
-    },
+        email: {
+            type: String,
+            required: true,
+            unique: true,
+            lowercase: true,
+            trim: true,
+            index: true
+        },
 
-    email: {
-        type: String,
-        lowercase: true,
-        trim: true
-    },
+        phone: {
+            type: String,
+            trim: true,
+            sparse: true,
+            index: true
+        },
 
-    createdAt: {
-        type: Date,
-        default: Date.now
-    },
+        password: {
+            type: String,
+            required: function () {
+                return !this.googleId;
+            }
+        },
 
-    password: {
-        type: String,
-        required: true
-    },
+        profilePic: {
+            type: String,
+            default: ""
+        },
 
-    googleId: {
-        type: String,
-        default: null,
-        sparse: true
-    },
+        googleId: {
+            type: String,
+            default: null,
+            sparse: true
+        },
 
-    role: {
-        type: String,
-        enum: ["user", "owner","admin"],
-        default: "user"
+        role: {
+            type: String,
+            enum: ["user", "owner", "admin"],
+            default: "user"
+        }
+    },
+    {
+        timestamps: true
     }
+);
+
+userSchema.virtual("fullName").get(function () {
+    return this.name;
+}).set(function (name) {
+    this.name = name;
 });
 
 const User = mongoose.model("User", userSchema);
