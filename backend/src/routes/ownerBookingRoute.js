@@ -17,11 +17,8 @@ router.use(protectRoute);
 router.use(ownerOnly);
 
 router.get("/all", getAllBooking);
-
 router.get("/today", getTodayBooking);
-
 router.patch("/:id/status", updateBookingStatus);
-
 router.patch("/:id/cancel", cancelBooking);
 
 export default router;

@@ -21,11 +21,36 @@ app.use(cors({ origin: "http://localhost:5173", credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 
+const app = express();
+
+// Allowed CORS origins (configurable via FRONTEND_URL environment variable)
+const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    "http://localhost:5173",
+    "http://127.0.0.1:5173"
+].filter(Boolean);
+
+// Middlewares
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+        return callback(null, true);
+    },
+    credentials: true
+}));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+
+// API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/user/booking", userBookingRoute);
 app.use("/api/owner/booking", ownerBookingRoute);
 app.use("/api/salons", salonRoutes);
 app.use("/api/payment", paymentRoutes);
+app.use("/api/reviews", reviewRoutes);
 
 if (process.env.NODE_ENV !== "test") {
     app.listen(8080, () => {

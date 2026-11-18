@@ -4,6 +4,7 @@ import {
     createSalon,
     getAllSalons,
     getSalonById,
+    getSalonBySlug,
     getMySalons,
     updateSalon,
     deleteSalon
@@ -11,10 +12,9 @@ import {
 
 import { protectRoute } from "../middleware/auth.middleware.js";
 import { ownerOnly } from "../middleware/owner.middleware.js";
-import { fetchSalonService } from "../controllers/salon.js";
+import { getAllServices } from "../controllers/serviceController.js";
 
 const router = express.Router();
-
 
 // =====================================================
 // PUBLIC ROUTES
@@ -23,10 +23,13 @@ const router = express.Router();
 // Get all active salons
 router.get("/", getAllSalons);
 
-router.get("/fetch-services", fetchSalonService);
+// Legacy service fetch route
+router.get("/fetch-services", getAllServices);
+
+// Get salon by slug
+router.get("/slug/:slug", getSalonBySlug);
 
 // Get salons owned by logged-in owner
-// This must come before /:id
 router.get(
     "/my-salons",
     protectRoute,
@@ -36,7 +39,6 @@ router.get(
 
 // Get single salon by ID
 router.get("/:id", getSalonById);
-
 
 // =====================================================
 // OWNER ROUTES
@@ -65,10 +67,5 @@ router.delete(
     ownerOnly,
     deleteSalon
 );
-
-
-// =====================================================
-// EXPORT ROUTER
-// =====================================================
 
 export default router;

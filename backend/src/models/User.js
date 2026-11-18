@@ -35,22 +35,28 @@ const userSchema = new mongoose.Schema({
         default: Date.now
     },
 
-    password: {
-        type: String,
-        required: true
-    },
+        profilePic: {
+            type: String,
+            default: ""
+        },
 
-    googleId: {
-        type: String,
-        default: null,
-        sparse: true
-    },
+        googleId: {
+            type: String,
+            default: null,
+            sparse: true
+        },
 
     role: {
         type: String,
         enum: ["user", "salon", "owner", "admin"],
         default: "user"
     }
+);
+
+userSchema.virtual("fullName").get(function () {
+    return this.name;
+}).set(function (name) {
+    this.name = name;
 });
 
 const User = mongoose.model("User", userSchema);

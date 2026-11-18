@@ -29,6 +29,7 @@ export const signup = async (req, res) => {
         if (!userName || !cleanEmail || !password) {
             return res.status(400).json({ message: "All fields are required" });
         }
+
         if (password.length < 6) {
             return res.status(400).json({ message: "Password must be at least 6 characters" });
         }
@@ -218,6 +219,9 @@ export const updateProfile = async (req, res) => {
     }
 };
 
+// =====================================================
+// GOOGLE OAUTH
+// =====================================================
 export const googleUrl = async (req, res) => {
     const authUrl = getGoogleAuthURL();
     res.redirect(authUrl);

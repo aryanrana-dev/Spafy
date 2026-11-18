@@ -240,6 +240,51 @@ export const getSalonById = async (req, res) => {
         });
     }
 };
+
+// =====================================================
+// GET SALON BY SLUG - PUBLIC
+// =====================================================
+
+export const getSalonBySlug = async (req, res) => {
+    try {
+        const { slug } = req.params;
+
+        if (!slug) {
+            return res.status(400).json({
+                success: false,
+                message: "Salon slug is required"
+            });
+        }
+
+        const cleanSlug = slug.trim().toLowerCase();
+
+        const salon = await Salon.findOne({
+            slug: cleanSlug,
+            isActive: true
+        })
+            .select("name slug address businessHours images ownerPhone createdAt")
+            .lean();
+
+        if (!salon) {
+            return res.status(404).json({
+                success: false,
+                message: "Salon not found"
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            salon
+        });
+
+    } catch (error) {
+        console.error("Get salon by slug error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
+    }
+};
 // =====================================================
 // GET MY SALONS - OWNER
 // =====================================================

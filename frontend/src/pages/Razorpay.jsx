@@ -77,3 +77,15 @@ export const handlePayment = async ({
     }
 };
 
+ }
+  return (
+    <div>
+      <button onClick={handlePayment} className='border'>Pay now</button>
+    </div>
+  )
+    
+  
+       }
+      
+
+export default Razorpay

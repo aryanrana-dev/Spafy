@@ -37,4 +37,7 @@ router.patch("/cancel/:id", cancelBooking);
 // Reschedule user's own booking (admin can reschedule any)
 router.patch("/reschedule/:id", rescheduleBooking);
 
+// Get one of the logged-in user's bookings
+router.get("/:id", getBookingById);
+
 export default router;

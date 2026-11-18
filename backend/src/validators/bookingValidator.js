@@ -1,56 +1,59 @@
 import { z } from "zod";
 
-// =====================================================
-// COMMON OBJECT ID VALIDATION
-// =====================================================
-
 const objectId = z
     .string()
     .trim()
-    .regex(
-        /^[0-9a-fA-F]{24}$/,
-        "Invalid MongoDB ID"
-    );
+    .regex(/^[0-9a-fA-F]{24}$/, "Invalid MongoDB ID");
 
-
-// =====================================================
-// ISO DATE VALIDATION
-// =====================================================
-
-const dateTime = z
-    .string()
-    .datetime({
-        offset: true,
-        message: "Invalid date and time"
-    });
-
-
-// =====================================================
-// CREATE BOOKING VALIDATION
-// =====================================================
-
+// Create Booking Validator
 export const createBookingSchema = z.object({
-
     body: z.object({
-
-        // Salon selected by the customer
         salonId: objectId,
+        salonServiceId: objectId.optional(),
+        services: z.array(objectId).optional(),
+        appointmentDate: z.string().refine((val) => !isNaN(Date.parse(val)), {
+            message: "Invalid appointment date"
+        }),
+        startTime: z.string().refine((val) => !isNaN(Date.parse(val)), {
+            message: "Invalid start time"
+        })
+    }).refine((data) => data.salonServiceId || (data.services && data.services.length > 0), {
+        message: "At least one service is required for booking"
+    })
+});
 
-        // Salon service selected by the customer
+// Check Slot Validator
+export const checkSlotSchema = z.object({
+    body: z.object({
+        salonId: objectId,
         salonServiceId: objectId,
+        startTime: z.string().refine((val) => !isNaN(Date.parse(val)), {
+            message: "Invalid start time"
+        })
+    })
+});
 
-        // Appointment date
-        appointmentDate: dateTime,
+// Reschedule Booking Validator
+export const rescheduleBookingSchema = z.object({
+    params: z.object({
+        id: objectId
+    }),
+    body: z.object({
+        appointmentDate: z.string().refine((val) => !isNaN(Date.parse(val)), {
+            message: "Invalid appointment date"
+        }),
+        startTime: z.string().refine((val) => !isNaN(Date.parse(val)), {
+            message: "Invalid start time"
+        })
+    })
+});
 
-        // Requested appointment start time
-        startTime: dateTime
-
-    }).strict(),
-
-    // No route parameters for create booking
-    params: z.object({}).strict(),
-
-    // No query parameters for create booking
-    query: z.object({}).strict()
-
+// Update Booking Status Validator (Owner)
+export const updateBookingStatusSchema = z.object({
+    params: z.object({
+        id: objectId
+    }),
+    body: z.object({
+        status: z.enum(["confirmed", "completed", "cancelled", "no_show"])
+    })
 });

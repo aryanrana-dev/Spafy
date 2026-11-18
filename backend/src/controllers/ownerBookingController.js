@@ -35,6 +35,9 @@ export const getAllBooking = async (req, res) => {
         return res.status(200).json({
             success: true,
             count: bookings.length,
+            total,
+            page: pageNum,
+            pages: Math.ceil(total / limitNum),
             bookings
         });
 
