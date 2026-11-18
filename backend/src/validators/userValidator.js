@@ -46,8 +46,18 @@ export const loginUserSchema = z.object({
 
         phone: z
             .string()
-            .trim()
-            .optional(),
+            .min(8, "Password must be at least 8 characters")
+            .max(100, "Password cannot exceed 100 characters"),
+
+        role: z
+            .enum(["user", "salon", "owner", "admin"])
+            .optional()
+
+    }).strict(),
+
+    params: z.object({}).strict(),
+
+    query: z.object({}).strict()
 
         password: z
             .string({ required_error: "Password is required" })

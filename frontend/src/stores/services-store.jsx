@@ -21,7 +21,7 @@ export const useServicesStore = create((set) => ({
     services: [],
     isOpen: false,
     addService: (service) => set((state) => ({ services: [...state.services, service], isOpen: true })),
-    removeService: (serviceId) => set((state) => ({ services: state.services.filter((service) => service.id !== serviceId) })),
+    removeService: (serviceId) => set((state) => ({ services: state.services.filter((service) => service._id !== serviceId && service.id !== serviceId) })),
     reset: () => set({ services: [], isOpen: false }),
     toggle: () => set((state) => ({ isOpen: !state.isOpen })),
 }))

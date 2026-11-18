@@ -1,23 +1,14 @@
-import mongoose from "mongoose"
-
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+dotenv.config();
 
 export const connectDB = async () => {
     try {
-        const conn = await mongoose.connect(process.env.MONGO_URI);
+        const uri = process.env.MONGO_URI?.trim() || "mongodb://127.0.0.1:27017/spafy";
+        const conn = await mongoose.connect(uri);
         console.log("mongodb connected");
-
-        try {
-            const userIndexes = await mongoose.connection.collection("users").indexes();
-            const legacyPhoneIndex = userIndexes.find(idx => idx.name === "phone_1" && !idx.sparse);
-            if (legacyPhoneIndex) {
-                await mongoose.connection.collection("users").dropIndex("phone_1");
-                console.log("Dropped legacy non-sparse phone_1 index");
-            }
-        } catch (idxErr) {
-            // Ignore index drop if collection doesn't exist yet
-        }
-    }
-    catch (err) {
-        console.log(err);
+        return conn;
+    } catch (err) {
+        console.error("MongoDB connection error:", err);
     }
 };

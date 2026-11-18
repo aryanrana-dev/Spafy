@@ -1,9 +1,9 @@
 import mongoose from "mongoose";
 
 const paymentSchema = new mongoose.Schema({
-    bookingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking', required: true },
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    salonId: { type: mongoose.Schema.Types.ObjectId, ref: 'Salon', required: true },
+    bookingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    salonId: { type: mongoose.Schema.Types.ObjectId, ref: 'Salon' },
 
     razorpayOrderId: { type: String, required: true },
     razorpayPaymentId: { type: String }, // Populated after successful payment

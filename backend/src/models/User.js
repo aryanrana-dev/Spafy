@@ -1,36 +1,39 @@
 
 import mongoose from "mongoose";
 
-const userSchema = new mongoose.Schema(
-    {
-        name: {
-            type: String,
-            required: true,
-            trim: true
-        },
+const userSchema = new mongoose.Schema({
+    phone: {
+        type: String,
+        trim: true
+    },
 
-        email: {
-            type: String,
-            required: true,
-            unique: true,
-            lowercase: true,
-            trim: true,
-            index: true
-        },
+    name: {
+        type: String,
+        trim: true
+    },
 
-        phone: {
-            type: String,
-            trim: true,
-            sparse: true,
-            index: true
-        },
+    fullName: {
+        type: String,
+        trim: true
+    },
 
-        password: {
-            type: String,
-            required: function () {
-                return !this.googleId;
-            }
-        },
+    email: {
+        type: String,
+        required: true,
+        unique: true,
+        lowercase: true,
+        trim: true
+    },
+
+    profilePic: {
+        type: String,
+        default: ""
+    },
+
+    createdAt: {
+        type: Date,
+        default: Date.now
+    },
 
         profilePic: {
             type: String,
@@ -43,14 +46,10 @@ const userSchema = new mongoose.Schema(
             sparse: true
         },
 
-        role: {
-            type: String,
-            enum: ["user", "owner", "admin"],
-            default: "user"
-        }
-    },
-    {
-        timestamps: true
+    role: {
+        type: String,
+        enum: ["user", "salon", "owner", "admin"],
+        default: "user"
     }
 );
 

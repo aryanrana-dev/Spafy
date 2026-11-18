@@ -1,6 +1,9 @@
 import { useNavigate } from "react-router-dom";
+import { useServicesStore } from "../stores/services-store";
+
 const CartDrawer = ({ isOpen, onClose, subtotal = "$0", services }) => {
     const navigate = useNavigate();
+    const removeService = useServicesStore((state) => state.removeService);
     const checkout = () => {
         navigate("/salon/checkout");
     }
@@ -24,7 +27,7 @@ const CartDrawer = ({ isOpen, onClose, subtotal = "$0", services }) => {
                 <div className="flex justify-between items-center p-4 border-b border-outline-variant/40">
                     <h2 className="font-headline-md text-headline-md text-primary">Your Cart</h2>
                     <button
-                        className="text-on-surface-variant hover:opacity-70 transition-opacity"
+                        className="text-on-surface-variant hover:opacity-70 transition-opacity cursor-pointer"
                         onClick={onClose}
                         id="close-cart-btn"
                     >
@@ -36,13 +39,16 @@ const CartDrawer = ({ isOpen, onClose, subtotal = "$0", services }) => {
                 <div className="flex-grow overflow-y-auto p-4 space-y-4" id="cart-items-container">
                     {services?.length > 0 ? (
                         services.map((service) => (
-                            <div key={service.name} className="cart-item flex items-center gap-4 p-3 rounded-md bg-surface-container-low border border-outline-variant/40">
+                            <div key={service._id || service.name} className="cart-item flex items-center gap-4 p-3 rounded-md bg-surface-container-low border border-outline-variant/40">
                                 <img src={service.img} alt="salon image" className="w-16 h-16 object-cover rounded-md flex-shrink-0" />
                                 <div className="flex-grow">
-                                    <h4 className="font-body-md font-medium text-primary line-clamp-1">{service.title}</h4>
-                                    <p className="text-on-surface-variant font-body-md">1000</p>
+                                    <h4 className="font-body-md font-medium text-primary line-clamp-1">{service.title || service.name}</h4>
+                                    <p className="text-on-surface-variant font-body-md">₹{service.price}</p>
                                 </div>
-                                <button className="text-on-surface-variant hover:text-error transition-colors p-2" >
+                                <button
+                                    onClick={() => removeService(service._id || service.id)}
+                                    className="text-on-surface-variant hover:text-error transition-colors p-2 cursor-pointer"
+                                >
                                     <span className="material-symbols-outlined text-sm">delete</span>
                                 </button>
                             </div>

@@ -1,5 +1,4 @@
-import { useState, memo, useCallback } from 'react';
-import DatePicker from 'react-date-picker';
+import { memo } from 'react';
 import 'react-date-picker/dist/DatePicker.css';
 import 'react-calendar/dist/Calendar.css';
 

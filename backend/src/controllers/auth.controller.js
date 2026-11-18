@@ -1,232 +1,221 @@
 import User from "../models/User.js";
+import Salon from "../models/Salon.js";
 import bcrypt from "bcrypt";
 import { generateToken } from "../lib/utils.js";
 import { getGoogleAuthURL, getGoogleUserInfo } from "../services/googleAuthService.js";
+import { normalizeRole } from "../middleware/rbac.middleware.js";
 import dotenv from "dotenv";
 dotenv.config();
 
-// =====================================================
-// SIGNUP
-// =====================================================
-export const signup = async (req, res) => {
-    const { name, fullName, email, password, phone, role } = req.body;
-    const userName = name || fullName;
+// Helper to find associated salon slug for salon/admin accounts
+const getSalonSlugForUser = async (userId, role) => {
+    if (role === "salon" || role === "admin" || role === "owner") {
+        try {
+            const salon = await Salon.findOne({ ownerId: userId }).select("slug");
+            return salon?.slug || "spafy";
+        } catch (e) {
+            return "spafy";
+        }
+    }
+    return null;
+};
 
+export const signup = async (req, res) => {
     try {
-        if (!userName || !email || !password) {
-            return res.status(400).json({
-                success: false,
-                message: "Name, email, and password are required"
-            });
+        const { fullName, name, email, password, role, adminSecret } = req.body || {};
+        const userName = (fullName || name || "").trim();
+        const cleanEmail = (email || "").toLowerCase().trim();
+
+        if (!userName || !cleanEmail || !password) {
+            return res.status(400).json({ message: "All fields are required" });
         }
 
         if (password.length < 6) {
-            return res.status(400).json({
-                success: false,
-                message: "Password must be at least 6 characters"
-            });
+            return res.status(400).json({ message: "Password must be at least 6 characters" });
         }
 
+        // Check if email format is valid
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid email format"
-            });
+        if (!emailRegex.test(cleanEmail)) {
+            return res.status(400).json({ message: "Invalid email format" });
         }
 
-        const cleanEmail = email.trim().toLowerCase();
         const existingUser = await User.findOne({ email: cleanEmail });
         if (existingUser) {
-            return res.status(400).json({
-                success: false,
-                message: "Email already exists"
-            });
+            return res.status(400).json({ message: "Email already exists" });
         }
 
-        if (phone) {
-            const existingPhone = await User.findOne({ phone: phone.trim() });
-            if (existingPhone) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Phone number already registered"
+        // Determine Role with Security Guard
+        let assignedRole = "user";
+        const requestedRole = normalizeRole(role);
+
+        if (requestedRole === "salon") {
+            assignedRole = "salon";
+        } else if (requestedRole === "admin") {
+            // Protect Admin role creation against privilege escalation
+            const configuredSecret = process.env.ADMIN_SECRET || "spafy-admin-secret";
+            if (adminSecret && adminSecret === configuredSecret) {
+                assignedRole = "admin";
+            } else {
+                return res.status(403).json({
+                    message: "Unauthorized: Valid adminSecret required to register as Admin"
                 });
             }
+        } else {
+            assignedRole = "user";
         }
 
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        const assignedRole = role === "owner" ? "owner" : "user";
-
-        const userPayload = {
-            name: userName.trim(),
+        const newUser = new User({
+            name: userName,
+            fullName: userName,
             email: cleanEmail,
             password: hashedPassword,
             role: assignedRole
-        };
+        });
 
-        if (phone && phone.trim()) {
-            userPayload.phone = phone.trim();
-        }
-
-        const newUser = await User.create(userPayload);
-
-        const token = generateToken(newUser._id, res);
+        const savedUser = await newUser.save();
+        const effectiveRole = normalizeRole(savedUser.role);
+        const token = generateToken(savedUser._id, effectiveRole, res);
+        const salonSlug = await getSalonSlugForUser(savedUser._id, effectiveRole);
 
         return res.status(201).json({
-            success: true,
-            message: "Account created successfully",
-            token,
-            user: {
-                _id: newUser._id,
-                name: newUser.name,
-                email: newUser.email,
-                phone: newUser.phone,
-                role: newUser.role,
-                profilePic: newUser.profilePic
-            }
+            _id: savedUser._id,
+            fullName: savedUser.fullName,
+            email: savedUser.email,
+            profilePic: savedUser.profilePic,
+            role: effectiveRole,
+            salonSlug,
+            token
         });
 
     } catch (err) {
         console.error("Signup error:", err);
-        return res.status(500).json({
-            success: false,
-            message: "Internal server error"
-        });
+        return res.status(500).json({ message: "Internal server error" });
     }
 };
 
-// =====================================================
-// LOGIN
-// =====================================================
 export const login = async (req, res) => {
-    const { email, phone, password } = req.body;
-
-    if ((!email && !phone) || !password) {
-        return res.status(400).json({
-            success: false,
-            message: "Email/phone and password are required"
-        });
-    }
-
     try {
-        const query = email ? { email: email.trim().toLowerCase() } : { phone: phone.trim() };
-        const user = await User.findOne(query);
+        const { email, password } = req.body || {};
+        const cleanEmail = (email || "").toLowerCase().trim();
 
-        if (!user || !user.password) {
+        if (!cleanEmail || !password) {
             return res.status(400).json({
-                success: false,
-                message: "Invalid credentials"
+                message: "Email and password are required"
+            });
+        }
+
+        const user = await User.findOne({ email: cleanEmail });
+        if (!user) {
+            return res.status(400).json({
+                message: "Invalid Credentials"
             });
         }
 
         const isPasswordCorrect = await bcrypt.compare(password, user.password);
         if (!isPasswordCorrect) {
             return res.status(400).json({
-                success: false,
-                message: "Invalid credentials"
+                message: "Invalid Credentials"
             });
         }
 
-        const token = generateToken(user._id, res);
+        const effectiveRole = normalizeRole(user.role);
+        const token = generateToken(user._id, effectiveRole, res);
+        const salonSlug = await getSalonSlugForUser(user._id, effectiveRole);
 
         return res.status(200).json({
-            success: true,
-            message: "Logged in successfully",
-            token,
-            user: {
-                _id: user._id,
-                name: user.name,
-                email: user.email,
-                phone: user.phone,
-                role: user.role,
-                profilePic: user.profilePic
-            }
+            _id: user._id,
+            fullName: user.fullName || user.name,
+            email: user.email,
+            profilePic: user.profilePic,
+            role: effectiveRole,
+            salonSlug,
+            token
         });
-
     } catch (error) {
         console.error("Login error:", error);
         return res.status(500).json({
-            success: false,
             message: "Internal server error"
         });
     }
 };
 
-// =====================================================
-// LOGOUT
-// =====================================================
 export const logout = async (req, res) => {
-    try {
-        res.cookie("jwt", "", { maxAge: 0, httpOnly: true });
-        return res.status(200).json({
-            success: true,
-            message: "Logged out successfully"
-        });
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: "Internal server error"
-        });
-    }
+    res.cookie("jwt", "", { maxAge: 0 });
+    return res.status(200).json({
+        message: "Logged out successfully"
+    });
 };
 
-// =====================================================
-// GET CURRENT LOGGED IN USER (/me)
-// =====================================================
 export const getMe = async (req, res) => {
     try {
+        const user = req.user;
+        const effectiveRole = normalizeRole(user.role);
+        const salonSlug = await getSalonSlugForUser(user._id, effectiveRole);
+
         return res.status(200).json({
             success: true,
             user: {
-                _id: req.user._id,
-                name: req.user.name,
-                email: req.user.email,
-                phone: req.user.phone,
-                role: req.user.role,
-                profilePic: req.user.profilePic
+                _id: user._id,
+                fullName: user.fullName || user.name,
+                name: user.name,
+                email: user.email,
+                phone: user.phone,
+                role: effectiveRole,
+                profilePic: user.profilePic,
+                salonSlug
             }
         });
-    } catch (error) {
-        console.error("GetMe error:", error);
-        return res.status(500).json({
-            success: false,
-            message: "Internal server error"
-        });
+    } catch (err) {
+        console.error("Get me error:", err);
+        return res.status(500).json({ success: false, message: "Internal server error" });
     }
 };
 
-// =====================================================
-// UPDATE PROFILE
-// =====================================================
 export const updateProfile = async (req, res) => {
     try {
-        const { profilePic, name, phone } = req.body;
-        const updates = {};
+        const { profilePic, fullName, name, phone } = req.body || {};
+        const updateData = {};
 
-        if (profilePic !== undefined) updates.profilePic = profilePic;
-        if (name) updates.name = name.trim();
-        if (phone) updates.phone = phone.trim();
+        if (profilePic) {
+            updateData.profilePic = profilePic;
+        }
+        if (fullName || name) {
+            const cleanName = (fullName || name).trim();
+            updateData.fullName = cleanName;
+            updateData.name = cleanName;
+        }
+        if (phone) {
+            updateData.phone = String(phone).trim();
+        }
 
         const updatedUser = await User.findByIdAndUpdate(
             req.user._id,
-            updates,
+            updateData,
             { new: true }
         ).select("-password");
 
+        const effectiveRole = normalizeRole(updatedUser.role);
+        const salonSlug = await getSalonSlugForUser(updatedUser._id, effectiveRole);
+
         return res.status(200).json({
             success: true,
-            message: "Profile updated successfully",
-            user: updatedUser
+            user: {
+                _id: updatedUser._id,
+                fullName: updatedUser.fullName || updatedUser.name,
+                email: updatedUser.email,
+                phone: updatedUser.phone,
+                role: effectiveRole,
+                profilePic: updatedUser.profilePic,
+                salonSlug
+            }
         });
-
     } catch (error) {
         console.error("Error in update profile:", error);
-        return res.status(500).json({
-            success: false,
-            message: "Internal server error"
-        });
+        return res.status(500).json({ message: "Internal server error" });
     }
 };
 
@@ -234,51 +223,47 @@ export const updateProfile = async (req, res) => {
 // GOOGLE OAUTH
 // =====================================================
 export const googleUrl = async (req, res) => {
-    try {
-        const authUrl = getGoogleAuthURL();
-        return res.redirect(authUrl);
-    } catch (error) {
-        console.error("Google auth URL error:", error);
-        return res.status(500).json({
-            success: false,
-            message: "Failed to generate Google auth URL"
-        });
-    }
+    const authUrl = getGoogleAuthURL();
+    res.redirect(authUrl);
 };
 
 export const googleCallback = async (req, res) => {
     try {
-        const { code } = req.query;
-        if (!code) {
-            return res.redirect("http://localhost:5173/salon/login?error=no_code");
+        const { code, error } = req.query;
+        if (error || !code) {
+            console.error("Google auth error or no code:", error);
+            return res.redirect(`http://localhost:5173/salon/login?error=${encodeURIComponent(error || "Google authorization cancelled")}`);
         }
 
         const googleUser = await getGoogleUserInfo(code);
-        if (!googleUser || !googleUser.email) {
-            return res.redirect("http://localhost:5173/salon/login?error=failed_google_auth");
-        }
-
-        let user = await User.findOne({ email: googleUser.email.toLowerCase() });
-
+        let user = await User.findOne({ email: googleUser.email });
         if (!user) {
             user = await User.create({
-                name: googleUser.name || "Google User",
-                email: googleUser.email.toLowerCase(),
+                name: googleUser.name,
+                fullName: googleUser.name,
+                email: googleUser.email,
                 googleId: googleUser.id,
+                password: await bcrypt.hash(Math.random().toString(36), 10),
                 role: "user"
             });
-        } else if (!user.googleId) {
-            user.googleId = googleUser.id;
-            await user.save();
         }
 
-        generateToken(user._id, res);
+        const effectiveRole = normalizeRole(user.role);
+        const token = generateToken(user._id, effectiveRole, res);
+        const userName = encodeURIComponent(user.fullName || user.name || "Client");
+        const userEmail = encodeURIComponent(user.email);
+        const salonSlug = await getSalonSlugForUser(user._id, effectiveRole) || "spafy";
 
-        const redirectPath = user.role === "owner" ? "/salon/dashboard" : "/";
-        return res.redirect(`http://localhost:5173${redirectPath}`);
+        let redirectPath = "/salon/spafy";
+        if (effectiveRole === "salon") {
+            redirectPath = `/${salonSlug}/dashboard`;
+        }
 
+        return res.redirect(
+            `http://localhost:5173${redirectPath}?auth=google&token=${token}&userId=${user._id}&fullName=${userName}&email=${userEmail}&role=${effectiveRole}&salonSlug=${salonSlug}`
+        );
     } catch (error) {
         console.error("Google callback error:", error);
-        return res.redirect("http://localhost:5173/salon/login?error=auth_error");
+        return res.redirect(`http://localhost:5173/salon/login?error=${encodeURIComponent(error.message || "Google authentication failed")}`);
     }
 };

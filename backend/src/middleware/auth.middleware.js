@@ -7,11 +7,7 @@ import User from "../models/User.js";
 
 export const protectRoute = async (req, res, next) => {
     try {
-        const token =
-            req.cookies?.jwt ||
-            (req.headers.authorization?.startsWith("Bearer ")
-                ? req.headers.authorization.split(" ")[1]
-                : null);
+        const token = req.cookies?.jwt || req.headers.authorization?.replace(/^Bearer\s+/i, "");
 
         // No token
         if (!token) {
@@ -53,6 +49,7 @@ export const protectRoute = async (req, res, next) => {
 
         // Attach authenticated user
         req.user = user;
+        req.userRole = (user.role === "owner" ? "salon" : user.role) || "user";
 
         next();
 
