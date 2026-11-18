@@ -1,3 +1,6 @@
+import mongoose from "mongoose";
+import Salon from "../models/Salon.js";
+
 // =====================================================
 // CREATE SALON - OWNER
 // =====================================================
@@ -148,7 +151,7 @@ export const getAllSalons = async (req, res) => {
         // Fetch only active salons
         // Do not expose private owner information
         const salons = await Salon.find({
-            isActive: true
+            isActive: { $ne: false }
         })
             .select(
                 "name slug address businessHours createdAt"
@@ -162,7 +165,7 @@ export const getAllSalons = async (req, res) => {
 
         // Get total active salons
         const total = await Salon.countDocuments({
-            isActive: true
+            isActive: { $ne: false }
         });
 
         // Return paginated salons
@@ -206,7 +209,7 @@ export const getSalonById = async (req, res) => {
         // Private owner information is not exposed
         const salon = await Salon.findOne({
             _id: id,
-            isActive: true
+            isActive: { $ne: false }
         })
             .select(
                 "name slug address businessHours createdAt"
@@ -243,11 +246,9 @@ export const getSalonById = async (req, res) => {
 
 export const getMySalons = async (req, res) => {
     try {
-        // Find only salons owned by the logged-in user
-        // req.user._id comes from authentication middleware
-        const salons = await Salon.find({
-            ownerId: req.user._id
-        })
+        const isAdmin = req.user.role === "admin";
+        const query = isAdmin ? {} : { ownerId: req.user._id };
+        const salons = await Salon.find(query)
             .select(
                 "name slug ownerPhone address businessHours isActive createdAt"
             )
@@ -298,12 +299,10 @@ export const updateSalon = async (req, res) => {
             });
         }
 
-        // Find salon belonging to the logged-in owner
-        // Never trust ownerId from req.body
-        const salon = await Salon.findOne({
-            _id: id,
-            ownerId: req.user._id
-        });
+        // Find salon (admin can access any, salon owner can only access their own)
+        const isAdmin = req.user.role === "admin";
+        const query = isAdmin ? { _id: id } : { _id: id, ownerId: req.user._id };
+        const salon = await Salon.findOne(query);
 
         // Salon not found or user is not the owner
         if (!salon) {
@@ -408,12 +407,10 @@ export const deleteSalon = async (req, res) => {
             });
         }
 
-        // Find salon belonging to the logged-in owner
-        // This prevents another owner from deleting this salon
-        const salon = await Salon.findOne({
-            _id: id,
-            ownerId: req.user._id
-        });
+        // Find salon (admin can access any, salon owner can only access their own)
+        const isAdmin = req.user.role === "admin";
+        const query = isAdmin ? { _id: id } : { _id: id, ownerId: req.user._id };
+        const salon = await Salon.findOne(query);
 
         // Salon not found or user is not the owner
         if (!salon) {

@@ -2,7 +2,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'https://api.yourdomain.com',
+    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080/api',
+    withCredentials: true,
     headers: {
         'Content-Type': 'application/json',
     },
@@ -11,7 +12,7 @@ const api = axios.create({
 // Request Interceptor: Attach Auth Token
 api.interceptors.request.use(
     (config) => {
-        // Read token from localStorage or cookie
+        // Read token from localStorage
         const token = localStorage.getItem('token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
@@ -26,9 +27,11 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            // Optional: Clear token and redirect to login
             localStorage.removeItem('token');
-            window.location.href = '/login';
+            localStorage.removeItem('user');
+            if (window.location.pathname !== '/salon/login') {
+                window.location.href = '/salon/login';
+            }
         }
         return Promise.reject(error);
     }

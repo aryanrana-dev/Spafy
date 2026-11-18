@@ -27,6 +27,16 @@ const salonSchema = new mongoose.Schema(
             index: true
         },
 
+        ownerPhone: {
+            type: String,
+            trim: true
+        },
+
+        isActive: {
+            type: Boolean,
+            default: true
+        },
+
         address: {
             street: {
                 type: String,

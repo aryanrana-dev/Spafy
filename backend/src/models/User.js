@@ -4,21 +4,30 @@ import mongoose from "mongoose";
 const userSchema = new mongoose.Schema({
     phone: {
         type: String,
-        required: true,
-        unique: true,
-        index: true
+        trim: true
     },
 
     name: {
         type: String,
-        required: true,
+        trim: true
+    },
+
+    fullName: {
+        type: String,
         trim: true
     },
 
     email: {
         type: String,
+        required: true,
+        unique: true,
         lowercase: true,
         trim: true
+    },
+
+    profilePic: {
+        type: String,
+        default: ""
     },
 
     createdAt: {
@@ -39,7 +48,7 @@ const userSchema = new mongoose.Schema({
 
     role: {
         type: String,
-        enum: ["user", "owner","admin"],
+        enum: ["user", "salon", "owner", "admin"],
         default: "user"
     }
 });

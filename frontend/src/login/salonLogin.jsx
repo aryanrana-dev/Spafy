@@ -1,17 +1,88 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import '../services-page/homepage-layout.css';
 import './salonLogin.css';
+import { useAuthStore } from '../stores/auth-store';
 
 export default function SalonLogin() {
     const [showPassword, setShowPassword] = useState(false);
+    const [isSignUp, setIsSignUp] = useState(false);
+    const [fullName, setFullName] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [role, setRole] = useState('user');
+    const [adminSecret, setAdminSecret] = useState('');
+    const [urlError, setUrlError] = useState(() => {
+        const params = new URLSearchParams(window.location.search);
+        const errParam = params.get('error');
+        if (errParam) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+            return decodeURIComponent(errParam);
+        }
+        return '';
+    });
 
-    const handleSubmit = (e) => {
+    const navigate = useNavigate();
+    const location = useLocation();
+    const { login, signup, isLoading, error, isAuthenticated, user, clearError } = useAuthStore();
+
+    const redirectAfterAuth = (currentUser) => {
+        const fromPath = location.state?.from;
+        const effectiveRole = currentUser?.role === 'owner' ? 'salon' : currentUser?.role;
+        const targetSlug = currentUser?.salonSlug || 'spafy';
+
+        if (effectiveRole === 'salon') {
+            navigate(`/${targetSlug}/dashboard`, { replace: true });
+        } else if (effectiveRole === 'admin') {
+            if (fromPath && fromPath !== '/salon/login' && fromPath !== '/') {
+                navigate(fromPath, { replace: true });
+            } else {
+                navigate(`/${targetSlug}/dashboard`, { replace: true });
+            }
+        } else {
+            // Role: user
+            if (fromPath && !fromPath.includes('dashboard') && fromPath !== '/salon/login' && fromPath !== '/') {
+                navigate(fromPath, { replace: true });
+            } else {
+                navigate('/salon/spafy', { replace: true });
+            }
+        }
+    };
+
+    useEffect(() => {
+        clearError();
+    }, [clearError]);
+
+    useEffect(() => {
+        if (isAuthenticated && user) {
+            redirectAfterAuth(user);
+        }
+    }, [isAuthenticated, user]);
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
+        setUrlError('');
+        let res;
+        if (isSignUp) {
+            res = await signup(fullName, email, password, role, adminSecret);
+        } else {
+            res = await login(email, password);
+        }
+
+        if (res?.success && res?.user) {
+            redirectAfterAuth(res.user);
+        }
     };
 
     const handleGoogleLogin = () => {
-        window.location.href = "http://localhost:8080/api/auth/google"
-    }
+        window.location.href = "http://localhost:8080/api/auth/google";
+    };
+
+    const handleDemoFill = (demoEmail, demoPassword) => {
+        setEmail(demoEmail);
+        setPassword(demoPassword);
+        setIsSignUp(false);
+    };
 
     return (
         <div className="min-h-screen flex items-center justify-center p-margin-mobile md:p-0 bg-background font-body-md text-on-background relative overflow-hidden">
@@ -34,27 +105,96 @@ export default function SalonLogin() {
                 </div>
             </div>
 
-            <main className="w-full max-w-md relative z-10 animate-in fade-in duration-700">
+            <main className="w-full max-w-md relative z-10 animate-in fade-in duration-700 py-8">
 
                 {/* Central Minimalist Card */}
-                <div className="bg-surface-container-lowest rounded-lg p-10 md:p-12 relative overflow-hidden shadow-[0_4px_20px_rgba(74,59,50,0.05)] border border-outline-variant/30">
+                <div className="bg-surface-container-lowest rounded-lg p-8 md:p-10 relative overflow-hidden shadow-[0_4px_20px_rgba(74,59,50,0.05)] border border-outline-variant/30">
 
                     {/* Top Branding */}
-                    <div className="flex flex-col items-center mb-10">
-                        <div className="flex items-center justify-center gap-4 mb-4">
+                    <div className="flex flex-col items-center mb-6">
+                        <div className="flex items-center justify-center gap-4 mb-2">
                             <h1 className="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary tracking-tight">
                                 Spafy
                             </h1>
                         </div>
 
-                        <h2 className="font-headline-md text-headline-md text-primary-container mt-2">Owner Login</h2>
-                        <p className="font-body-md text-on-surface-variant text-center mt-2 opacity-80">
-                            Access your professional dashboard
+                        <h2 className="font-headline-md text-headline-md text-primary-container mt-1">
+                            {isSignUp ? "Create Account" : "Welcome Back"}
+                        </h2>
+                        <p className="font-body-md text-on-surface-variant text-center mt-1 opacity-80 text-xs">
+                            {isSignUp
+                                ? "Choose your role to get started"
+                                : "Log in to access your authorized area"}
                         </p>
                     </div>
 
-                    {/* Login Form */}
-                    <form action="#" className="space-y-8" onSubmit={handleSubmit}>
+                    {(urlError || error) && (
+                        <div className="mb-5 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded text-center">
+                            {urlError || error}
+                        </div>
+                    )}
+
+                    {/* Login / Signup Form */}
+                    <form className="space-y-5" onSubmit={handleSubmit}>
+
+                        {isSignUp && (
+                            <>
+                                {/* Role Selection */}
+                                <div className="space-y-1.5">
+                                    <label className="font-label-sm text-on-surface-variant uppercase text-[11px]">
+                                        Select Role
+                                    </label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setRole("user")}
+                                            className={`py-2 px-3 rounded text-xs font-medium border text-center transition-all cursor-pointer ${
+                                                role === "user"
+                                                    ? "border-primary bg-primary text-white shadow-sm"
+                                                    : "border-outline-variant/40 text-on-surface-variant hover:bg-surface-container-low"
+                                            }`}
+                                        >
+                                            Customer (User)
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setRole("salon")}
+                                            className={`py-2 px-3 rounded text-xs font-medium border text-center transition-all cursor-pointer ${
+                                                role === "salon"
+                                                    ? "border-primary bg-primary text-white shadow-sm"
+                                                    : "border-outline-variant/40 text-on-surface-variant hover:bg-surface-container-low"
+                                            }`}
+                                        >
+                                            Salon Partner
+                                        </button>
+                                    </div>
+                                    <p className="text-[11px] text-on-surface-variant/70 italic mt-1">
+                                        {role === "user"
+                                            ? "• User can access salon pages, bookings, profile & checkout."
+                                            : "• Salon can only access the partner dashboard (salonName/dashboard)."}
+                                    </p>
+                                </div>
+
+                                {/* Full Name Field */}
+                                <div className="relative flex flex-col group">
+                                    <label htmlFor="fullName" className="font-label-sm text-on-surface-variant uppercase mb-1">
+                                        Full Name
+                                    </label>
+                                    <div className="flex items-center border-b border-secondary-fixed-dim focus-within:border-secondary transition-colors duration-300 py-2">
+                                        <span className="material-symbols-outlined text-on-surface-variant mr-3">person</span>
+                                        <input
+                                            type="text"
+                                            id="fullName"
+                                            required
+                                            value={fullName}
+                                            onChange={(e) => setFullName(e.target.value)}
+                                            placeholder="Jane Doe"
+                                            className="w-full bg-transparent border-none p-0 focus:ring-0 font-body-md text-primary placeholder:text-outline-variant/60"
+                                        />
+                                    </div>
+                                </div>
+                            </>
+                        )}
 
                         {/* Email Field */}
                         <div className="relative flex flex-col group">
@@ -66,7 +206,10 @@ export default function SalonLogin() {
                                 <input
                                     type="email"
                                     id="email"
-                                    placeholder="salon@example.com"
+                                    required
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="user@example.com"
                                     className="w-full bg-transparent border-none p-0 focus:ring-0 font-body-md text-primary placeholder:text-outline-variant/60"
                                 />
                             </div>
@@ -84,13 +227,16 @@ export default function SalonLogin() {
                                 <input
                                     type={showPassword ? "text" : "password"}
                                     id="password"
+                                    required
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
                                     placeholder="••••••••"
                                     className="w-full bg-transparent border-none p-0 focus:ring-0 font-body-md text-primary placeholder:text-outline-variant/60"
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="text-on-surface-variant/60 hover:text-secondary transition-colors"
+                                    className="text-on-surface-variant/60 hover:text-secondary transition-colors cursor-pointer"
                                 >
                                     <span className="material-symbols-outlined">
                                         {showPassword ? 'visibility_off' : 'visibility'}
@@ -100,15 +246,64 @@ export default function SalonLogin() {
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="pt-4 flex flex-col items-center gap-6">
+                        <div className="pt-2 flex flex-col items-center gap-4">
                             <button
                                 type="submit"
-                                className="w-full bg-primary-container text-surface-container-lowest font-label-md py-4 rounded transition-all duration-300 hover:bg-primary active:scale-[0.98] shadow-sm tracking-widest uppercase"
+                                disabled={isLoading}
+                                className="w-full bg-primary-container text-surface-container-lowest font-label-md py-3.5 rounded transition-all duration-300 hover:bg-primary active:scale-[0.98] shadow-sm tracking-widest uppercase disabled:opacity-50 cursor-pointer"
                             >
-                                Login
+                                {isLoading ? "Processing..." : isSignUp ? "Sign Up" : "Login"}
                             </button>
 
-                            <div className="relative flex items-center py-2 w-full">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    clearError();
+                                    setUrlError('');
+                                    setIsSignUp(!isSignUp);
+                                }}
+                                className="text-xs text-secondary hover:underline cursor-pointer"
+                            >
+                                {isSignUp ? "Already have an account? Log in" : "Need an account? Sign up here"}
+                            </button>
+
+                            {/* Quick RBAC Role Demo Logins */}
+                            {!isSignUp && (
+                                <div className="w-full mt-2 p-3 bg-surface-container-low/60 border border-outline-variant/30 rounded text-left">
+                                    <div className="text-[10px] font-sans font-semibold uppercase tracking-wider text-on-surface-variant/80 mb-2 flex items-center justify-between">
+                                        <span>Quick Test 3 Roles</span>
+                                        <span className="text-[9px] lowercase opacity-60">click to populate</span>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDemoFill("user@spafy.com", "password123")}
+                                            className="py-1.5 px-1 bg-white border border-outline-variant/40 rounded text-[11px] text-center font-medium hover:bg-primary hover:text-white transition-colors cursor-pointer"
+                                            title="Role: user (Customer services & bookings only)"
+                                        >
+                                            User
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDemoFill("salon@spafy.com", "password123")}
+                                            className="py-1.5 px-1 bg-white border border-outline-variant/40 rounded text-[11px] text-center font-medium hover:bg-primary hover:text-white transition-colors cursor-pointer"
+                                            title="Role: salon (Dashboard only)"
+                                        >
+                                            Salon
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDemoFill("admin@spafy.com", "password123")}
+                                            className="py-1.5 px-1 bg-white border border-outline-variant/40 rounded text-[11px] text-center font-medium hover:bg-primary hover:text-white transition-colors cursor-pointer"
+                                            title="Role: admin (Full access)"
+                                        >
+                                            Admin
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="relative flex items-center py-1 w-full">
                                 <div className="flex-grow border-t border-outline-variant/30"></div>
                                 <span className="flex-shrink mx-4 text-outline-variant font-label-sm uppercase tracking-widest text-[10px]">or</span>
                                 <div className="flex-grow border-t border-outline-variant/30"></div>
@@ -117,7 +312,7 @@ export default function SalonLogin() {
                             <button
                                 type="button"
                                 onClick={handleGoogleLogin}
-                                className="w-full bg-transparent border border-outline-variant/50 text-primary font-label-md py-4 rounded flex items-center justify-center gap-3 transition-all duration-300 hover:bg-surface-container-low active:scale-[0.98] shadow-sm tracking-widest uppercase"
+                                className="w-full bg-transparent border border-outline-variant/50 text-primary font-label-md py-3 rounded flex items-center justify-center gap-3 transition-all duration-300 hover:bg-surface-container-low active:scale-[0.98] shadow-sm tracking-widest uppercase text-xs cursor-pointer"
                             >
                                 <svg width="18" height="18" viewBox="0 0 24 24">
                                     <path
@@ -139,26 +334,22 @@ export default function SalonLogin() {
                                 </svg>
                                 Continue with Google
                             </button>
-
-                            <a href="#" className="font-label-sm text-secondary hover:text-primary transition-colors tracking-wide underline underline-offset-4 decoration-secondary/30">
-                                Forgot Password?
-                            </a>
                         </div>
                     </form>
                 </div>
 
                 {/* Footer Links */}
-                <footer className="mt-8 flex flex-col items-center gap-4">
-                    <div className="flex items-center gap-2 text-on-surface-variant/60">
+                <footer className="mt-6 flex flex-col items-center gap-3">
+                    <div className="flex items-center gap-2 text-on-surface-variant/60 text-xs">
                         <span className="material-symbols-outlined text-[16px]">verified_user</span>
-                        <span className="font-label-sm uppercase tracking-widest">Secure Admin Gateway</span>
+                        <span className="font-label-sm uppercase tracking-widest text-[10px]">Spafy RBAC Protection</span>
                     </div>
 
                     <div className="flex gap-6">
-                        <a href="#" className="font-label-sm text-on-surface-variant/50 hover:text-secondary transition-colors">
+                        <a href="#" className="font-label-sm text-[11px] text-on-surface-variant/50 hover:text-secondary transition-colors">
                             Privacy Policy
                         </a>
-                        <a href="#" className="font-label-sm text-on-surface-variant/50 hover:text-secondary transition-colors">
+                        <a href="#" className="font-label-sm text-[11px] text-on-surface-variant/50 hover:text-secondary transition-colors">
                             Support
                         </a>
                     </div>

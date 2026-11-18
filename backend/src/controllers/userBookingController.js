@@ -58,7 +58,7 @@ export const createBooking = async (req, res) => {
 
         const salon = await Salon.findOne({
             _id: salonId,
-            isActive: true
+            isActive: { $ne: false }
         }).select("_id");
 
         if (!salon) {
@@ -140,12 +140,18 @@ export const createBooking = async (req, res) => {
 
 export const getMyBookings = async (req, res) => {
     try {
-        const bookings = await Booking.find({
-            userId: req.user._id
-        })
-            .populate("salonId", "name address")
-            .populate("salonServiceId", "price durationMinutes")
-            .sort({ appointmentDate: -1 });
+        const isAdmin = req.user.role === "admin";
+        let filter = { userId: req.user._id };
+        if (isAdmin && req.query.all === "true") {
+            filter = {};
+        } else if (isAdmin && req.query.userId) {
+            filter = { userId: req.query.userId };
+        }
+
+        const bookings = await Booking.find(filter)
+            .populate("salonId", "name address slug")
+            .populate("salonServiceId", "name price durationMinutes image")
+            .sort({ appointmentDate: -1, startTime: -1 });
 
         return res.status(200).json({
             success: true,
@@ -179,12 +185,12 @@ export const getBookingById = async (req, res) => {
             });
         }
 
-        const booking = await Booking.findOne({
-            _id: id,
-            userId: req.user._id
-        })
+        const isAdmin = req.user.role === "admin";
+        const query = isAdmin ? { _id: id } : { _id: id, userId: req.user._id };
+
+        const booking = await Booking.findOne(query)
             .populate("salonId", "name address")
-            .populate("salonServiceId", "price durationMinutes");
+            .populate("salonServiceId", "name price durationMinutes");
 
         if (!booking) {
             return res.status(404).json({
@@ -224,10 +230,10 @@ export const cancelBooking = async (req, res) => {
             });
         }
 
-        const booking = await Booking.findOne({
-            _id: id,
-            userId: req.user._id
-        });
+        const isAdmin = req.user.role === "admin";
+        const query = isAdmin ? { _id: id } : { _id: id, userId: req.user._id };
+
+        const booking = await Booking.findOne(query);
 
         if (!booking) {
             return res.status(404).json({
@@ -291,10 +297,10 @@ export const rescheduleBooking = async (req, res) => {
             });
         }
 
-        const booking = await Booking.findOne({
-            _id: id,
-            userId: req.user._id
-        });
+        const isAdmin = req.user.role === "admin";
+        const query = isAdmin ? { _id: id } : { _id: id, userId: req.user._id };
+
+        const booking = await Booking.findOne(query);
 
         if (!booking) {
             return res.status(404).json({
@@ -389,7 +395,9 @@ export const rescheduleBooking = async (req, res) => {
 
 export const checkSlotAvailability = async (req, res) => {
     try {
-        const { salonId, startTime, salonServiceId } = req.query;
+        const salonId = req.query.salonId || req.body?.salonId;
+        const startTime = req.query.startTime || req.body?.startTime;
+        const salonServiceId = req.query.salonServiceId || req.body?.salonServiceId;
 
         if (!salonId || !startTime || !salonServiceId) {
             return res.status(400).json({

@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from 'react';
 import Hero from './hero';
 import BottomNav from './bottom-nav';
 import Header from './header';
@@ -11,13 +10,11 @@ import { useServices } from '../queries/services-queries';
 
 export default function HomepageLayout() {
 
-    const { data, isLoading, isError, error } = useServices();
+    const { data, isLoading, isError } = useServices();
 
     const services = useServicesStore((state) => state.services);
     const isOpen = useServicesStore((state) => state.isOpen);
     const addService = useServicesStore((state) => state.addService);
-    const removeService = useServicesStore((state) => state.removeService);
-    const reset = useServicesStore((state) => state.reset);
     const toggle = useServicesStore((state) => state.toggle);
     return (<>
         <div className="min-h-screen pb-32 animate-in fade-in duration-700">
@@ -25,7 +22,7 @@ export default function HomepageLayout() {
 
             <main className="pt-20">
                 <Hero />
-                <CartDrawer isOpen={isOpen} onClose={toggle} subtotal="$0" services={services} />
+                <CartDrawer isOpen={isOpen} onClose={toggle} subtotal={`₹${services.reduce((acc, curr) => acc + (Number(curr.price) || 0), 0)}`} services={services} />
                 <section className="container mx-auto max-w-[1200px] px-6 md:px-16 py-12">
                     <div className="space-y-6 md:space-y-8 max-w-3xl mx-auto">
                         {isLoading && <p className="text-center text-[#4e4540]">Loading services...</p>}
@@ -34,6 +31,8 @@ export default function HomepageLayout() {
                             data.map((item) => (
                                 <ServiceCard
                                     key={item._id || item.id}
+                                    id={item._id || item.id}
+                                    salonId={item.salonId}
                                     category={item.category || "SERVICE"}
                                     title={item.name}
                                     description={item.description || `${item.durationMinutes ? item.durationMinutes + " mins" : "Duration vary"} • ₹${item.price ?? 0}`}
@@ -50,7 +49,7 @@ export default function HomepageLayout() {
                 </section>
             </main>
 
-            <BottomNav />
+
             <FloatBtn />
         </div>
     </>)

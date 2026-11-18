@@ -1,24 +1,34 @@
+import { useParams } from 'react-router-dom';
 import './dashboard-layout.css';
 import Sidebar from './sidebar';
-import { Header } from './header';
+import Header from './header';
 import { MetricCard, AppointmentCard } from './dashboard-card';
 import { StatBar, QueueItem, TableRow } from './helper';
+import { useAuthStore } from '../stores/auth-store';
 
 export default function DashboardLayout() {
+    const { salonName = "spafy" } = useParams();
+    const user = useAuthStore((state) => state.user);
+    const greetingName = user?.fullName || user?.name || "Partner";
+
     return (
         <div className="flex min-h-screen bg-[#fbf9f4]">
             {/* Mobile Overlay */}
             <div className="fixed inset-0 bg-[#1b1c19]/50 z-40 hidden md:hidden" />
 
-            <Sidebar />
+            <Sidebar salonName={salonName} />
 
             <main className="flex-1 md:ml-64 flex flex-col min-h-screen">
-                <Header />
+                <Header salonName={salonName} />
 
                 <div className="p-6 md:p-16 flex-1 overflow-y-auto">
                     <div className="mb-8">
-                        <h2 className="text-4xl font-serif text-[#1b1c19] mb-2 tracking-tight">Welcome back, Eleanor</h2>
-                        <p className="text-base text-[#4e4540]">Here is an overview of your sanctuary's performance today.</p>
+                        <h2 className="text-4xl font-serif text-[#1b1c19] mb-2 tracking-tight">
+                            Welcome back, {greetingName}
+                        </h2>
+                        <p className="text-base text-[#4e4540]">
+                            Here is an overview of <strong className="capitalize">{salonName}</strong> sanctuary's performance today.
+                        </p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

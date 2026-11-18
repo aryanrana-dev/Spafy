@@ -1,9 +1,8 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
+import { useQuery } from "@tanstack/react-query";
+import api from "../api/axiosClient";
 
 const fetchSalonServices = async () => {
-    const { data } = await axios.get("http://localhost:8080/api/salons/fetch-services");
-    console.log("services", data);
+    const { data } = await api.get("/salons/fetch-services");
     return data;
 }
 

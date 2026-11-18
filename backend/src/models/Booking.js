@@ -1,5 +1,8 @@
 
 import mongoose from "mongoose";
+import "./Salon.js";
+import "./SalonService.js";
+import "./User.js";
 
 const bookingSchema = new mongoose.Schema(
     {

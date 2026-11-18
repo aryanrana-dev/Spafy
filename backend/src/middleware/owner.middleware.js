@@ -1,30 +1,9 @@
-export const ownerOnly = (req, res, next) => {
-    try {
-        if (!req.user?._id) {
-            return res.status(401).json({
-                success: false,
-                message: "Unauthorized"
-            });
-        }
+import { authorizeRoles } from "./rbac.middleware.js";
 
-        if (
-            req.user.role !== "owner" &&
-            req.user.role !== "admin"
-        ) {
-            return res.status(403).json({
-                success: false,
-                message: "Access denied"
-            });
-        }
+/**
+ * ownerOnly middleware
+ * Backward-compatible wrapper allowing 'salon', 'owner', and 'admin' roles.
+ */
+export const ownerOnly = authorizeRoles("salon", "admin");
 
-        next();
-
-    } catch (error) {
-        console.error("Owner authorization error:", error);
-
-        return res.status(500).json({
-            success: false,
-            message: "Internal server error"
-        });
-    }
-};
+export default ownerOnly;
